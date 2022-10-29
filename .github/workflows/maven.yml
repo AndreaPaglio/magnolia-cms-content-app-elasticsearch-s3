@@ -22,5 +22,3 @@ jobs:
             run: mvn clean    
           - name: Build with Maven
             run: mvn -B package --file pom.xml -DskipTests -Djava.security.egd=file:/dev/./urandom -Djps.track.ap.dependencies=false
-          - name: Run with Maven
-            run: mvn spring-boot:start
