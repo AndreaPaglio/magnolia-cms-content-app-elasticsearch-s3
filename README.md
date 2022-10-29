@@ -1,0 +1,1 @@
+# magnolia-cms-content-app-elasticsearch-s3
