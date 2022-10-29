@@ -757,7 +757,7 @@ public class GenericContainer implements CustomContainer {
 
 	@Override
 	public void createConnection(Params params) throws Exception {
-		if (serviceContainer.getCustomContainer().getContentConnector().isEmpty()) {
+		if (serviceContainer.getCustomContainer().getContentConnector().get() == null) {
 			createCustomContainer(params);
 		}
 		serviceContainer.getCustomContainer().getContentConnector().get().createConnection(params);
