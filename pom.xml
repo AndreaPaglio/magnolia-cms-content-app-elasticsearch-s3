@@ -126,7 +126,13 @@
 			<version>3.7.1</version>
 		</dependency>
 	</dependencies>
-
+	<distributionManagement>
+		<repository>
+			<id>github</id>
+			<name>GitHub OWNER Apache Maven Packages</name>
+			<url>https://maven.pkg.github.com/AndreaPaglio/magnolia-cms-content-app-elasticsearch-s3</url>
+		</repository>
+	</distributionManagement>
 	<build>
 		<!-- default resources configuration which will filter the module descriptor -->
 		<resources>
