@@ -1,0 +1,168 @@
+/*
+ *
+ */
+package com.whitelabel.app.generic.ui.service;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import javax.inject.Inject;
+
+import org.slf4j.Logger;
+
+import com.vaadin.ui.Component;
+import com.vaadin.ui.VerticalLayout;
+import com.whitelabel.app.custom.interfaces.CustomTwoColumnView;
+import com.whitelabel.app.custom.interfaces.CustomView;
+import com.whitelabel.app.custom.interfaces.ListSearchViewAppInterface;
+import com.whitelabel.app.custom.interfaces.Listener;
+import com.whitelabel.app.custom.interfaces.QueryDelegate;
+import com.whitelabel.app.generic.entity.GenericItem;
+import com.whitelabel.app.generic.search.Params;
+import com.whitelabel.app.generic.service.RepositoryService;
+import com.whitelabel.app.generic.ui.CustomFieldFilter;
+import com.whitelabel.app.generic.ui.CustomUi;
+import com.whitelabel.app.generic.ui.FactoryCustomUi;
+import com.whitelabel.app.generic.ui.GroupCustomUi;
+import com.whitelabel.app.generic.utils.FieldUtils;
+import com.whitelabel.app.generic.utils.GenericConstants;
+
+import lombok.Data;
+
+@Data
+public class GenericViewImpl implements CustomView {
+
+	/** The log. */
+	private Logger log = org.slf4j.LoggerFactory.getLogger(GenericViewImpl.class);
+
+	/** The ui event action. */
+	@Inject
+	private UiEventAction uiEventAction;
+
+	/** The listener. */
+	private Listener listener;
+
+	/** The params. */
+	private Params params;
+
+	/** The layout. */
+	private VerticalLayout layout;
+
+	/** The log list view. */
+	private ListSearchViewAppInterface logListView;
+
+	/** The custom two column view. */
+	private CustomTwoColumnView customTwoColumnView;
+
+	@Inject
+	private RepositoryService serviceContainer;
+
+	/**
+	 * Gets the listener.
+	 *
+	 * @return the listener
+	 */
+	public Listener getListener() {
+		return this.listener;
+	}
+
+	/**
+	 * Instantiates a new manage ES view impl.
+	 *
+	 * @param logListView         the log list view
+	 * @param workbenchPresenter  the workbench presenter
+	 * @param customTwoColumnView the custom two column view
+	 */
+	@Inject
+	public GenericViewImpl(ListSearchViewAppInterface logListView, CustomTwoColumnView customTwoColumnView) {
+		this.logListView = logListView;
+		this.customTwoColumnView = customTwoColumnView;
+	}
+
+	/**
+	 * Sets the listener.
+	 *
+	 * @param listener the new listener
+	 */
+	@Override
+	public void setListener(Listener listener) {
+		this.listener = listener;
+	}
+
+	/**
+	 * As vaadin component.
+	 *
+	 * @return the component
+	 */
+	@Override
+	public Component asVaadinComponent() {
+		if (layout == null) {
+			layout = new VerticalLayout();
+			layout.setMargin(true);
+			layout.setSpacing(true);
+
+			List<String> nameClasses = FieldUtils.getAllClassGenericItem(GenericItem.class).stream().map(classObj -> {
+				return classObj.getName();
+			}).collect(Collectors.toList());
+			uiEventAction.setFactoryContainer(serviceContainer.getFactoryContainer());
+			uiEventAction.setLayout(layout);
+			uiEventAction.setListener(listener);
+
+			Runnable clickOnAdd = uiEventAction.clickOnAdd();
+			Consumer<CustomFieldFilter> selectOnIndex = uiEventAction.selectGenericItem();
+			CustomUi<CustomFieldFilter> customUI = FactoryCustomUi.create(layout, CustomFieldFilter.class);
+//			Create manage Tab
+			List<String> listSources = FieldUtils.getAllClassGenericItem(QueryDelegate.class).stream().map(classObj -> {
+				return classObj.getName();
+			}).collect(Collectors.toList());
+			Consumer<CustomFieldFilter> selectSource = uiEventAction.selectSource();
+			try {
+				customUI.createTab(Boolean.FALSE)
+						.nameTab(GenericConstants.TAB_NAME_CONFIGURATION, GenericConstants.TAB_NAME_CONFIGURATION)
+						.addSelect(GenericConstants.SELECT_SOURCE, selectSource,
+								GenericConstants.SELECT_SOURCE_PLACEHOLDER, listSources, GenericConstants.SELECT_SOURCE)
+						.addButtom(GenericConstants.BUTTON_SOURCE_CONNECT, GenericConstants.BUTTON_SOURCE_CONNECT,
+								Boolean.FALSE, uiEventAction.clickOnSourceConnect())
+						.build();
+			} catch (InstantiationException | IllegalAccessException e1) {
+				log.error("Error create tab Configuration", e1);
+			}
+
+			List<String> searchParamsSize = Arrays.asList(
+					String.valueOf(GenericConstants.SEARCH_PARAMS_DEFAULT_SIZE_PAGE),
+					String.valueOf(GenericConstants.SEARCH_PARAMS_DEFAULT_SIZE_PAGE * 5),
+					String.valueOf(GenericConstants.SEARCH_PARAMS_DEFAULT_SIZE_PAGE * 10));
+
+			try {
+				;
+				GroupCustomUi<CustomFieldFilter> tabManage = customUI.createTab(Boolean.TRUE)
+						.nameTab(GenericConstants.TAB_NAME_MANAGE, GenericConstants.TAB_GROUP_ITEM_MANAGE);
+				try {
+					tabManage.addSelect(GenericConstants.BUTTON_SELECT_INDEX_LABEL, selectOnIndex,
+							GenericConstants.BUTTON_SELECT_INDEX_PLACEHOLDER, nameClasses,
+							GenericConstants.FILTER_INDEX);
+				} catch (InstantiationException | IllegalAccessException e) {
+					log.error("Error Ui Creation", e);
+				}
+				tabManage.addButtom(GenericConstants.BUTTON_ADD_LABEL, GenericConstants.BUTTON_ADD_LABEL, Boolean.FALSE,
+						clickOnAdd).addLabel(GenericConstants.LABEL_ADD_INDEX).build();
+				customUI.createTab(Boolean.TRUE)
+						.nameTab(GenericConstants.TAB_NAME_SEARCH, GenericConstants.TAB_GROUP_ITEM_SEARCH)
+						.addTextField(GenericConstants.SEARCH_TEXT_ID, "Search", "Search by word ...")
+						.addFilter(GenericConstants.SEARCH_PARAMS_FULLTEXT_SEARCH, "").endGroup()
+						.addSelect(GenericConstants.SEARCH_PARAMS_NUMBER_PAGE_LABEL,
+								uiEventAction.clickOnChangeNumPage(), "Select on page ...", searchParamsSize,
+								GenericConstants.SEARCH_PARAMS_NUMBER_PAGE_LABEL)
+						.addButtom(GenericConstants.BUTTON_SEARCH_LABEL, GenericConstants.BUTTON_SEARCH_LABEL,
+								Boolean.TRUE, uiEventAction.clickOnSearch())
+						.build().build();
+			} catch (InstantiationException | IllegalAccessException e) {
+				log.error("Error UI tab", e);
+			}
+		}
+		return layout;
+	}
+
+}
