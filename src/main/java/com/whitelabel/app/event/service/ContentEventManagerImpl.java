@@ -11,7 +11,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.lang.StringUtils;
 
 import com.vaadin.event.ShortcutAction;
 import com.whitelabel.app.custom.interfaces.RefreshCacheEvent;
@@ -32,7 +31,6 @@ import info.magnolia.ui.workbench.event.ItemShortcutKeyEvent;
 import info.magnolia.ui.workbench.event.SearchEvent;
 import info.magnolia.ui.workbench.event.SelectionChangedEvent;
 import info.magnolia.ui.workbench.event.ViewTypeChangedEvent;
-import info.magnolia.ui.workbench.list.ListPresenterDefinition;
 import info.magnolia.ui.workbench.search.SearchPresenterDefinition;
 import lombok.Data;
 
@@ -176,24 +174,24 @@ public class ContentEventManagerImpl implements ContentEventManager {
 				services.getUiService().getWorkbenchPresenter().doSearch(jsonSearchParams);
 			}
 		});
-		services.getSubAppEventBus().addHandler(GenericSearchEvent.class, new GenericSearchEvent.Handler() {
-
-			@Override
-			public void onSearch(GenericSearchEvent event) {
-				event.getSearchParams();
-				String searchExpression = "";
-				BrowserLocation location = services.getUiService().getBrowserManager().getCurrentLocation();
-				if (StringUtils.isNotBlank(searchExpression)) {
-					location.updateViewType(ListPresenterDefinition.VIEW_TYPE);
-				}
-				location.updateQuery(searchExpression);
-				services.getUiService().getSubAppContext().getAppContext()
-						.updateSubAppLocation(services.getUiService().getSubAppContext(), location);
-				services.getUiService().getActionBarService()
-						.updateActionbar(services.getUiService().getActionbarPresenter());
-			}
-
-		});
+//		services.getSubAppEventBus().addHandler(GenericSearchEvent.class, new GenericSearchEvent.Handler() {
+//
+//			@Override
+//			public void onSearch(GenericSearchEvent event) {
+//				event.getSearchParams();
+//				String searchExpression = "";
+//				BrowserLocation location = services.getUiService().getBrowserManager().getCurrentLocation();
+//				if (StringUtils.isNotBlank(searchExpression)) {
+//					location.updateViewType(ListPresenterDefinition.VIEW_TYPE);
+//				}
+//				location.updateQuery(searchExpression);
+//				services.getUiService().getSubAppContext().getAppContext()
+//						.updateSubAppLocation(services.getUiService().getSubAppContext(), location);
+//				services.getUiService().getActionBarService()
+//						.updateActionbar(services.getUiService().getActionbarPresenter());
+//			}
+//
+//		});
 	}
 
 	/**
@@ -317,6 +315,8 @@ public class ContentEventManagerImpl implements ContentEventManager {
 			Params item = event.getParams();
 			if (item != null) {
 				services.getCacheHelper().removeAllCachedItems();
+				services.getCacheHelper().removeAllCachedResults();
+				services.getCacheHelper().removeAllFactoryConvert();
 				services.getCacheHelper().removeCachedResults(item.toString());
 				services.getUiService().getWorkbenchPresenter().doSearch(item.toString());
 			}

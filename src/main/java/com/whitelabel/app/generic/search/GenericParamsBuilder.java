@@ -3,8 +3,10 @@
  */
 package com.whitelabel.app.generic.search;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.whitelabel.app.generic.entity.GenericItem;
-import com.whitelabel.app.generic.utils.FieldUtils;
+import com.whitelabel.app.generic.service.RepositoryService;
 import com.whitelabel.app.generic.utils.GenericConstants;
 
 /**
@@ -13,15 +15,20 @@ import com.whitelabel.app.generic.utils.GenericConstants;
 public class GenericParamsBuilder {
 
 	/** The params. */
-	Params params;
+	private Params params;
+	private RepositoryService repositoryService;
+
+	public GenericParamsBuilder(RepositoryService repositoryService) {
+		this.repositoryService = repositoryService;
+	}
 
 	/**
 	 * Creates the search.
 	 *
 	 * @return the builder params
 	 */
-	public static GenericParamsBuilder createSearch() {
-		GenericParamsBuilder builder = new GenericParamsBuilder();
+	public static GenericParamsBuilder createSearch(RepositoryService repositoryService) {
+		GenericParamsBuilder builder = new GenericParamsBuilder(repositoryService);
 		builder.params = new Params();
 		builder.params.setType(TypeParam.SEARCH);
 		return builder;
@@ -34,8 +41,9 @@ public class GenericParamsBuilder {
 	 * @param classType the class type
 	 * @return the builder params
 	 */
-	public static <T> GenericParamsBuilder createAdd(Class<? extends GenericItem> classType) {
-		GenericParamsBuilder builder = new GenericParamsBuilder();
+	public static <T> GenericParamsBuilder createAdd(Class<? extends GenericItem> classType,
+			RepositoryService repositoryService) {
+		GenericParamsBuilder builder = new GenericParamsBuilder(repositoryService);
 		builder.params = new Params();
 		builder.params.setType(TypeParam.ADD);
 		builder.addField("index", classType.getName());
@@ -62,11 +70,13 @@ public class GenericParamsBuilder {
 	 * @return the builder params
 	 */
 	public GenericParamsBuilder addField(String field, Object value) {
-		if (this.params.getFields() != null) {
+		if ((value instanceof String && this.params.getFields() != null && StringUtils.isNotEmpty((String) value))
+				|| (this.params.getFields() != null)) {
 			this.params.getFields().put(field, value);
 		}
 		if (GenericConstants.FILTER_INDEX.equals(field)) {
-			this.params.setClassType(FieldUtils.getClassFromSearchParams(this.params, GenericItem.class));
+			this.params.setClassType(
+					repositoryService.getConverterClass().getClassFromParams(this.params, GenericItem.class));
 		}
 		return this;
 	}
@@ -106,7 +116,8 @@ public class GenericParamsBuilder {
 	 * @return the builder params
 	 */
 	public GenericParamsBuilder addOrder(String field, String value) {
-		if (this.params.getOrders() != null) {
+		if ((value instanceof String && this.params.getOrders() != null && StringUtils.isNotEmpty(value))
+				|| (this.params.getOrders() != null)) {
 			this.params.getOrders().put(field, value);
 		}
 		return this;

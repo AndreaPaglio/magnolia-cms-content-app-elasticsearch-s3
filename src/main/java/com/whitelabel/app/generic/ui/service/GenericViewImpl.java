@@ -3,7 +3,6 @@
  */
 package com.whitelabel.app.generic.ui.service;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -19,6 +18,7 @@ import com.whitelabel.app.custom.interfaces.CustomView;
 import com.whitelabel.app.custom.interfaces.ListSearchViewAppInterface;
 import com.whitelabel.app.custom.interfaces.Listener;
 import com.whitelabel.app.custom.interfaces.QueryDelegate;
+import com.whitelabel.app.generic.annotation.DelegateImplementation;
 import com.whitelabel.app.generic.entity.GenericItem;
 import com.whitelabel.app.generic.search.Params;
 import com.whitelabel.app.generic.service.RepositoryService;
@@ -26,7 +26,6 @@ import com.whitelabel.app.generic.ui.CustomFieldFilter;
 import com.whitelabel.app.generic.ui.CustomUi;
 import com.whitelabel.app.generic.ui.FactoryCustomUi;
 import com.whitelabel.app.generic.ui.GroupCustomUi;
-import com.whitelabel.app.generic.utils.FieldUtils;
 import com.whitelabel.app.generic.utils.GenericConstants;
 
 import lombok.Data;
@@ -103,9 +102,10 @@ public class GenericViewImpl implements CustomView {
 			layout.setMargin(true);
 			layout.setSpacing(true);
 
-			List<String> nameClasses = FieldUtils.getAllClassGenericItem(GenericItem.class).stream().map(classObj -> {
-				return classObj.getName();
-			}).collect(Collectors.toList());
+			List<String> nameClasses = serviceContainer.getConverterClass().getAllClassGenericItem(GenericItem.class)
+					.stream().map(classObj -> {
+						return classObj.getName();
+					}).collect(Collectors.toList());
 			uiEventAction.setFactoryContainer(serviceContainer.getFactoryContainer());
 			uiEventAction.setLayout(layout);
 			uiEventAction.setListener(listener);
@@ -114,9 +114,12 @@ public class GenericViewImpl implements CustomView {
 			Consumer<CustomFieldFilter> selectOnIndex = uiEventAction.selectGenericItem();
 			CustomUi<CustomFieldFilter> customUI = FactoryCustomUi.create(layout, CustomFieldFilter.class);
 //			Create manage Tab
-			List<String> listSources = FieldUtils.getAllClassGenericItem(QueryDelegate.class).stream().map(classObj -> {
-				return classObj.getName();
-			}).collect(Collectors.toList());
+			List<String> listSources = serviceContainer.getConverterClass().getAllClassGenericItem(QueryDelegate.class)
+					.stream().filter(classObj -> {
+						return classObj.getAnnotation(DelegateImplementation.class) != null;
+					}).map(classObj -> {
+						return classObj.getName();
+					}).collect(Collectors.toList());
 			Consumer<CustomFieldFilter> selectSource = uiEventAction.selectSource();
 			try {
 				customUI.createTab(Boolean.FALSE)
@@ -130,37 +133,24 @@ public class GenericViewImpl implements CustomView {
 				log.error("Error create tab Configuration", e1);
 			}
 
-			List<String> searchParamsSize = Arrays.asList(
-					String.valueOf(GenericConstants.SEARCH_PARAMS_DEFAULT_SIZE_PAGE),
-					String.valueOf(GenericConstants.SEARCH_PARAMS_DEFAULT_SIZE_PAGE * 5),
-					String.valueOf(GenericConstants.SEARCH_PARAMS_DEFAULT_SIZE_PAGE * 10));
-
+			;
+			GroupCustomUi<CustomFieldFilter> tabManage = customUI.createTab(Boolean.TRUE)
+					.nameTab(GenericConstants.TAB_NAME_MANAGE, GenericConstants.TAB_GROUP_ITEM_MANAGE);
 			try {
-				;
-				GroupCustomUi<CustomFieldFilter> tabManage = customUI.createTab(Boolean.TRUE)
-						.nameTab(GenericConstants.TAB_NAME_MANAGE, GenericConstants.TAB_GROUP_ITEM_MANAGE);
-				try {
-					tabManage.addSelect(GenericConstants.BUTTON_SELECT_INDEX_LABEL, selectOnIndex,
-							GenericConstants.BUTTON_SELECT_INDEX_PLACEHOLDER, nameClasses,
-							GenericConstants.FILTER_INDEX);
-				} catch (InstantiationException | IllegalAccessException e) {
-					log.error("Error Ui Creation", e);
-				}
-				tabManage.addButtom(GenericConstants.BUTTON_ADD_LABEL, GenericConstants.BUTTON_ADD_LABEL, Boolean.FALSE,
-						clickOnAdd).addLabel(GenericConstants.LABEL_ADD_INDEX).build();
-				customUI.createTab(Boolean.TRUE)
-						.nameTab(GenericConstants.TAB_NAME_SEARCH, GenericConstants.TAB_GROUP_ITEM_SEARCH)
-						.addTextField(GenericConstants.SEARCH_TEXT_ID, "Search", "Search by word ...")
-						.addFilter(GenericConstants.SEARCH_PARAMS_FULLTEXT_SEARCH, "").endGroup()
-						.addSelect(GenericConstants.SEARCH_PARAMS_NUMBER_PAGE_LABEL,
-								uiEventAction.clickOnChangeNumPage(), "Select on page ...", searchParamsSize,
-								GenericConstants.SEARCH_PARAMS_NUMBER_PAGE_LABEL)
-						.addButtom(GenericConstants.BUTTON_SEARCH_LABEL, GenericConstants.BUTTON_SEARCH_LABEL,
-								Boolean.TRUE, uiEventAction.clickOnSearch())
-						.build().build();
+				tabManage.addSelect(GenericConstants.BUTTON_SELECT_INDEX_LABEL, selectOnIndex,
+						GenericConstants.BUTTON_SELECT_INDEX_PLACEHOLDER, nameClasses, GenericConstants.FILTER_INDEX);
 			} catch (InstantiationException | IllegalAccessException e) {
-				log.error("Error UI tab", e);
+				log.error("Error Ui Creation", e);
 			}
+			tabManage.addButtom(GenericConstants.BUTTON_ADD_LABEL, GenericConstants.BUTTON_ADD_LABEL, Boolean.FALSE,
+					clickOnAdd).addLabel(GenericConstants.LABEL_ADD_INDEX).build();
+			customUI.createTab(Boolean.TRUE)
+					.nameTab(GenericConstants.TAB_NAME_SEARCH, GenericConstants.TAB_GROUP_ITEM_SEARCH)
+					.addTextField(GenericConstants.SEARCH_TEXT_ID, "Search", "Search by word ...")
+					.addFilter(GenericConstants.SEARCH_PARAMS_FULLTEXT_SEARCH, "").endGroup()
+					.addButtom(GenericConstants.BUTTON_SEARCH_LABEL, GenericConstants.BUTTON_SEARCH_LABEL, Boolean.TRUE,
+							uiEventAction.clickOnSearch())
+					.build().build();
 		}
 		return layout;
 	}

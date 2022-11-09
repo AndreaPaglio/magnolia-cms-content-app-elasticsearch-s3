@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.whitelabel.app.generic.entity.Field;
 import com.whitelabel.app.generic.entity.GenericItem;
-import com.whitelabel.app.generic.utils.FieldUtils;
+import com.whitelabel.app.generic.service.RepositoryService;
 
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 
@@ -33,14 +33,17 @@ public class GenericResultMeta<T extends GenericItem> implements ResultSetMetaDa
 	/** The Constant log. */
 	private static final Logger log = LoggerFactory.getLogger(GenericResultMeta.class);
 
+	private RepositoryService repositoryService;
+
 	/**
 	 * Instantiates a new elastic search result meta.
 	 *
 	 * @param fieldsName the fields name
 	 */
-	public GenericResultMeta(List<Field> fieldsName) {
+	public GenericResultMeta(List<Field> fieldsName, RepositoryService repositoryService) {
 		super();
 		this.fieldsName = fieldsName;
+		this.repositoryService = repositoryService;
 	}
 
 	/**
@@ -48,14 +51,16 @@ public class GenericResultMeta<T extends GenericItem> implements ResultSetMetaDa
 	 *
 	 * @param typeParameterClass the type parameter class
 	 */
-	public GenericResultMeta(Class<T> typeParameterClass) {
+	public GenericResultMeta(Class<T> typeParameterClass, RepositoryService repositoryService) {
 		super();
+		this.repositoryService = repositoryService;
 		String indexName;
 		try {
 			this.fieldsName = new ArrayList<Field>();
 			if (typeParameterClass != null) {
 				indexName = typeParameterClass.newInstance().getIndexName();
-				List<java.lang.reflect.Field> classFields = FieldUtils.getAllFields(typeParameterClass);
+				List<java.lang.reflect.Field> classFields = repositoryService.getConverterClass()
+						.getAllFields(typeParameterClass);
 				List<Field> fields = classFields.stream().map(f -> {
 					return Field.instanceFrom(f, indexName);
 				}).collect(Collectors.toList());

@@ -29,11 +29,11 @@ import com.vaadin.v7.ui.Table.ColumnReorderEvent;
 import com.vaadin.v7.ui.Table.ColumnResizeEvent;
 import com.whitelabel.app.custom.interfaces.CustomTwoColumnView;
 import com.whitelabel.app.generic.connector.FactoryContainer;
+import com.whitelabel.app.generic.service.RepositoryService;
 import com.whitelabel.app.generic.ui.FactoryCustomUi;
 import com.whitelabel.app.generic.ui.FieldProperty;
 import com.whitelabel.app.generic.ui.table.CustomTable;
 import com.whitelabel.app.generic.ui.table.RowId;
-import com.whitelabel.app.generic.utils.FieldUtils;
 import com.whitelabel.app.generic.utils.GenericConstants;
 
 import info.magnolia.ui.workbench.ContentView.Listener;
@@ -61,6 +61,8 @@ public class TableEventServiceImpl implements TableEventService {
 
 	/** The Constant log. */
 	static final Logger log = LoggerFactory.getLogger(TableEventServiceImpl.class);
+
+	private RepositoryService serviceContainer;
 
 	/**
 	 * Adds the value change listener.
@@ -98,7 +100,7 @@ public class TableEventServiceImpl implements TableEventService {
 					}
 					List<FieldProperty> values = new ArrayList<FieldProperty>();
 
-					List<java.lang.reflect.Field> classFields = FieldUtils
+					List<java.lang.reflect.Field> classFields = serviceContainer.getConverterClass()
 							.getAllFields(factoryContainer.getClassType());
 
 					List<Object> item = items.stream().collect(Collectors.toList());
@@ -267,12 +269,13 @@ public class TableEventServiceImpl implements TableEventService {
 	 * @param customTwoColumnView the custom two column view
 	 */
 	public TableEventServiceImpl(CustomTable table, Listener listener, FactoryContainer factoryContainer,
-			CustomTwoColumnView customTwoColumnView) {
+			CustomTwoColumnView customTwoColumnView, RepositoryService repositoryService) {
 		super();
 		this.table = table;
 		this.listener = listener;
 		this.customTwoColumnView = customTwoColumnView;
 		this.factoryContainer = factoryContainer;
+		this.serviceContainer = repositoryService;
 	}
 
 }

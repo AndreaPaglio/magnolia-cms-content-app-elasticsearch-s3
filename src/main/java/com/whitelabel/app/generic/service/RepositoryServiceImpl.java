@@ -11,6 +11,7 @@ import com.whitelabel.app.generic.connector.FactoryContainer;
 import com.whitelabel.app.generic.others.CacheHelper;
 import com.whitelabel.app.generic.ui.service.GenericContentConnectorDefinition;
 import com.whitelabel.app.generic.utils.FactoryConverter;
+import com.whitelabel.app.generic.utils.GenericClassConverter;
 
 import info.magnolia.event.EventBus;
 import lombok.Data;
@@ -55,8 +56,11 @@ public class RepositoryServiceImpl implements RepositoryService {
 
 	private UiService uiService;
 
+	private GenericClassConverter converterClass;
+
 	public RepositoryServiceImpl() {
-		this.uiService = new UiServiceImpl();
+		this.uiService = new UiServiceImpl(this);
+		this.converterClass = new GenericClassConverter(this);
 	}
 
 }

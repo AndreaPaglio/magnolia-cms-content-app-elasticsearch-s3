@@ -42,7 +42,7 @@ public class GenericConstants {
 	public static final String FILTER_INDEX = "index";
 
 	/** The Constant DEFAULT_PAGE_LENGTH. */
-	public static final int DEFAULT_PAGE_LENGTH = 100;
+	public static final int DEFAULT_PAGE_LENGTH = 50;
 
 	/** The Constant SEARCH_PARAMS_DEFAULT_NUMBER_PAGE. */
 	public static final int SEARCH_PARAMS_DEFAULT_NUMBER_PAGE = 0;
@@ -51,7 +51,7 @@ public class GenericConstants {
 	public static final int SEARCH_PARAMS_DEFAULT_OFFSET_PAGE = 0;
 
 	/** The Constant SEARCH_PARAMS_DEFAULT_SIZE_PAGE. */
-	public static final int SEARCH_PARAMS_DEFAULT_SIZE_PAGE = 10;
+	public static final int SEARCH_PARAMS_DEFAULT_SIZE_PAGE = 40;
 
 	/** The Constant INDEX_ID. */
 	public static final String INDEX_ID = "index";
@@ -71,8 +71,7 @@ public class GenericConstants {
 	/** The Constant ORDER_DESC. */
 	public static final String ORDER_DESC = "Desc";
 
-	/** The Constant TAB_NAME_MANAGE. */
-//  Label UI TAB
+	/** Label UI TAB */
 	public static final String TAB_NAME_MANAGE = "MANAGE ITEM";
 
 	/** The Constant TAB_NAME_SEARCH. */
@@ -110,6 +109,8 @@ public class GenericConstants {
 // CACHE
 	public static final String CACHED_RESULT_KEY = "results";
 	public static final String CACHED_ITEMS_KEY = "cachedItems";
+	public static final String CACHED_FACTORY_CONVERT_STRING_KEY = "cachedFactoryStringConvert";
+	public static final String CACHED_CONVERTER_CLASS_KEY = "cachedConverterClass";
 
 	public static final String SELECT_INDEX_KEY = "select-items-class-results";
 }

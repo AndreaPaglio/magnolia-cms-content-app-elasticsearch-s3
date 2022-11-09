@@ -13,20 +13,23 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.reflections.Reflections;
-import org.slf4j.Logger;
 
 import com.whitelabel.app.generic.annotation.Boost;
 import com.whitelabel.app.generic.entity.GenericItem;
+import com.whitelabel.app.generic.others.LogStatus;
 import com.whitelabel.app.generic.search.Params;
+import com.whitelabel.app.generic.service.RepositoryService;
 
 /**
  * From Class retrieving all fields. It works with reflections
  *
  */
-public class FieldUtils {
+public class GenericClassConverter {
+	private RepositoryService repositoryService;
 
-	/** The log. */
-	private static Logger log = org.slf4j.LoggerFactory.getLogger(FieldUtils.class);
+	public GenericClassConverter(RepositoryService repositoryService) {
+		this.repositoryService = repositoryService;
+	}
 
 	/**
 	 * Gets the all fields.
@@ -34,13 +37,19 @@ public class FieldUtils {
 	 * @param type the type
 	 * @return the all fields
 	 */
-	public static List<Field> getAllFields(Class<?> type) {
-		List<Field> fields = new ArrayList<>();
-		getAllFieldsRecursive(fields, type);
-		return fields;
+	public List<Field> getAllFields(Class<?> type) {
+		if (repositoryService.getCacheHelper().containsConverterClassKey(type)) {
+			return repositoryService.getCacheHelper().getConverterClass(type);
+		} else {
+			List<Field> fields = new ArrayList<>();
+			getAllFieldsRecursive(fields, type);
+			repositoryService.getCacheHelper().putConverterClass(type, fields);
+			return fields;
+		}
+
 	}
 
-	public static Optional<Field> getFieldFromAnnotation(Class<?> type, Class annotationClass) {
+	public Optional<Field> getFieldFromAnnotation(Class<?> type, Class annotationClass) {
 		Optional<Field> fields = getAllFields(type).stream().filter(field -> {
 			return field.getAnnotation(annotationClass) != null;
 		}).findFirst();
@@ -54,7 +63,7 @@ public class FieldUtils {
 	 * @param type   the type
 	 * @return the all fields recursive
 	 */
-	private static void getAllFieldsRecursive(List<Field> fields, Class<?> type) {
+	private void getAllFieldsRecursive(List<Field> fields, Class<?> type) {
 		List<Field> declaredFields = Arrays.asList(type.getDeclaredFields());
 		for (Field declaredField : declaredFields) {
 			if (!genericContainsField(declaredField, fields))
@@ -72,7 +81,7 @@ public class FieldUtils {
 	 * @param fields        the fields
 	 * @return true, if successful
 	 */
-	private static boolean genericContainsField(Field declaredField, List<Field> fields) {
+	private boolean genericContainsField(Field declaredField, List<Field> fields) {
 		for (Field field : fields) {
 			if (genericEqualsFields(field, declaredField))
 				return true;
@@ -87,7 +96,7 @@ public class FieldUtils {
 	 * @param other the other
 	 * @return true, if successful
 	 */
-	private static boolean genericEqualsFields(Field obj, Field other) {
+	private boolean genericEqualsFields(Field obj, Field other) {
 		return (obj.getName() == other.getName()) && (obj.getType() == other.getType());
 	}
 
@@ -98,17 +107,17 @@ public class FieldUtils {
 	 *
 	 * @return all Generic Class Items
 	 */
-	public static <D> List<Class<? extends D>> getAllClassGenericItem(Class<D> subTypeOf) {
+	public <D> List<Class<? extends D>> getAllClassGenericItem(Class<D> subTypeOf) {
 		Reflections reflections = new Reflections("com");
 		Set<Class<? extends D>> classes = reflections.getSubTypesOf(subTypeOf);
 		return classes.stream().collect(Collectors.toList());
 	}
 
-	public static Class getClassFromName(String nameClass) {
+	public Class getClassFromName(String nameClass) {
 		try {
 			return Class.forName(nameClass);
 		} catch (ClassNotFoundException e) {
-			log.error("Error ClassFromName", e);
+			repositoryService.getLogService().logger(LogStatus.ERROR, "Error ClassFromName", GenericClassConverter.class, e);
 		}
 		return null;
 	}
@@ -120,8 +129,8 @@ public class FieldUtils {
 	 *
 	 * @return the class by name
 	 */
-	public static <D> List<String> getClassByName(Class<D> subTypeOf) {
-		List<Class<? extends D>> allClassElasticSearchIndex = FieldUtils.getAllClassGenericItem(subTypeOf);
+	public <D> List<String> getClassByName(Class<D> subTypeOf) {
+		List<Class<? extends D>> allClassElasticSearchIndex = getAllClassGenericItem(subTypeOf);
 		return allClassElasticSearchIndex.stream().map(classType -> {
 			return classType.getName();
 		}).collect(Collectors.toList());
@@ -142,14 +151,13 @@ public class FieldUtils {
 	 * @throws IllegalAccessException
 	 * @throws InstantiationException
 	 */
-	public static <D> D createInstanceFromClassAndValues(Class<? extends D> typeClass, Params params, D newObj)
+	public <D> D createInstanceFromClassAndValues(Class<? extends D> typeClass, Params params, D newObj)
 			throws InstantiationException, IllegalAccessException {
-		FactoryConverter converter = new FactoryConverter();
 		if (newObj == null) {
 			newObj = typeClass.newInstance();
 		}
 		try {
-			List<String> fields = FieldUtils.getAllFields(typeClass).stream().filter(field -> {
+			List<String> fields = getAllFields(typeClass).stream().filter(field -> {
 				return params.getFields() != null && field.getName() != null
 						&& params.getFields().containsKey(field.getName());
 			}).map(field -> {
@@ -165,24 +173,28 @@ public class FieldUtils {
 						try {
 							nameField = typeClass.getSuperclass().getDeclaredField(name);
 						} catch (Exception superClassException) {
-							log.error("createInstanceFromClassAndValues", superClassException);
+							repositoryService.getLogService().logger(LogStatus.ERROR,
+									"createInstanceFromClassAndValues", GenericClassConverter.class, superClassException);
 						}
 					}
 					if (nameField != null) {
 						try {
 							nameField.setAccessible(true);
-							nameField.set(newObj, converter.convertToObject(params.getFields().get(name),
-									nameField.getType(), nameField));
+							nameField.set(newObj, repositoryService.getFactoryConverter()
+									.convertToObject(params.getFields().get(name), nameField.getType(), nameField));
 						} catch (Exception e) {
-							log.error("createInstanceFromClassAndValues", e);
+							repositoryService.getLogService().logger(LogStatus.ERROR,
+									"createInstanceFromClassAndValues", GenericClassConverter.class, e);
 						}
 					}
 				} catch (Exception e) {
-					log.error("createInstanceFromClassAndValues", e);
+					repositoryService.getLogService().logger(LogStatus.ERROR, "createInstanceFromClassAndValues",
+							GenericClassConverter.class, e);
 				}
 			}
 		} catch (Exception e) {
-			log.error("createInstanceFromClassAndValues", e);
+			repositoryService.getLogService().logger(LogStatus.ERROR, "createInstanceFromClassAndValues",
+					GenericClassConverter.class, e);
 		}
 		return newObj;
 	}
@@ -196,7 +208,7 @@ public class FieldUtils {
 	 * @param nameField the name field
 	 * @return the field from instance
 	 */
-	public static <T extends GenericItem> Object getFieldFromInstance(Class<? extends GenericItem> typeClass, T obj,
+	public <T extends GenericItem> Object getFieldFromInstance(Class<? extends GenericItem> typeClass, T obj,
 			String nameField) {
 		try {
 			java.lang.reflect.Field field = typeClass.getDeclaredField(nameField);
@@ -208,25 +220,24 @@ public class FieldUtils {
 	}
 
 	/**
-	 * Gets the class from search params.
+	 * Gets the class from params.
 	 *
 	 * @param <D>
 	 *
-	 * @param searchParams the search params
-	 * @return the class from search params
+	 * @param params the params
+	 * @return the class from params
 	 */
-	public static <D> Class<? extends D> getClassFromSearchParams(Params searchParams, Class<D> typeClass) {
+	public <D> Class<? extends D> getClassFromParams(Params searchParams, Class<D> typeClass) {
 		if (searchParams != null && searchParams.getFields() != null) {
 			String indexName = (String) searchParams.getFields().get(GenericConstants.INDEX_ID);
 			return getClassFromClassName(indexName, typeClass);
 		}
 		return null;
-
 	}
 
-	public static <D> Class<? extends D> getClassFromClassName(String nameClass, Class<D> typeClass) {
+	public <D> Class<? extends D> getClassFromClassName(String nameClass, Class<D> typeClass) {
 		try {
-			return FieldUtils.getAllClassGenericItem(typeClass).stream().filter(classObj -> {
+			return getAllClassGenericItem(typeClass).stream().filter(classObj -> {
 				String name = classObj.getName();
 				if (name != null && nameClass != null) {
 					return name.equals(nameClass);
@@ -245,7 +256,7 @@ public class FieldUtils {
 	 * @param field the field
 	 * @return the field name boost field
 	 */
-	public static String getFieldNameBoostField(Field field) {
+	public String getFieldNameBoostField(Field field) {
 		Boost[] boosts = field.getAnnotationsByType(Boost.class);
 		if (boosts == null || boosts.length == 0) {
 			return null;
@@ -259,7 +270,7 @@ public class FieldUtils {
 	 * @param field the field
 	 * @return true, if is boost field
 	 */
-	public static boolean isBoostField(Field field) {
+	public boolean isBoostField(Field field) {
 		Boost[] boosts = field.getAnnotationsByType(Boost.class);
 		if (boosts == null || boosts.length == 0) {
 			return false;
@@ -267,8 +278,8 @@ public class FieldUtils {
 		return true;
 	}
 
-	public static <D> Class<? extends D> getClassItem(Params params, Object fieldName, Class<D> classTypes) {
-		Class<? extends D> classType = FieldUtils.getAllClassGenericItem(classTypes).stream().filter(classObj -> {
+	public <D> Class<? extends D> getClassItem(Params params, Object fieldName, Class<D> classTypes) {
+		Class<? extends D> classType = getAllClassGenericItem(classTypes).stream().filter(classObj -> {
 			String name = classObj.getName();
 			String indexName = (String) fieldName;
 			if (name != null && indexName != null) {

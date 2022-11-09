@@ -33,7 +33,7 @@ import com.whitelabel.app.generic.entity.ItemDelegate;
 import com.whitelabel.app.generic.others.GenericException;
 import com.whitelabel.app.generic.search.Params;
 import com.whitelabel.app.generic.service.RepositoryService;
-import com.whitelabel.app.generic.utils.FieldUtils;
+import com.whitelabel.app.generic.ui.table.GenericResults;
 import com.whitelabel.app.generic.utils.GenericConstants;
 import com.whitelabel.app.generic.utils.HashFactory;
 
@@ -77,7 +77,7 @@ public class S3Delegate<T extends GenericItem> extends GenericDelegate<T> {
 	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
 	@Override
-	public List<? extends GenericItem> search(String bucketName, Params searchParams) throws GenericException {
+	public GenericResults search(String bucketName, Params searchParams) throws GenericException {
 		if (!hasExecuteSetup(bucketName)) {
 			setup(bucketName, typeParameterClass);
 		}
@@ -105,22 +105,22 @@ public class S3Delegate<T extends GenericItem> extends GenericDelegate<T> {
 				File file = downloadObject(bucketName, amazonS3Client, os.getKey());
 				obj = (T) serviceContainer.getFactoryConverter().getModelMapper().map(os, typeParameterClass);
 
-				Optional<java.lang.reflect.Field> fileAnnotation = FieldUtils.getFieldFromAnnotation(typeParameterClass,
-						FileUpload.class);
+				Optional<java.lang.reflect.Field> fileAnnotation = getServiceContainer().getConverterClass()
+						.getFieldFromAnnotation(typeParameterClass, FileUpload.class);
 				if (fileAnnotation.isPresent()) {
 					params.getFields().put(fileAnnotation.get().getName(), file);
 				}
 				String pathFile = fileAnnotation.get().getAnnotation(FileUpload.class).fieldPath();
-				Optional<java.lang.reflect.Field> filePathAnnotation = FieldUtils.getAllFields(typeParameterClass)
-						.stream().filter(field -> {
+				Optional<java.lang.reflect.Field> filePathAnnotation = getServiceContainer().getConverterClass()
+						.getAllFields(typeParameterClass).stream().filter(field -> {
 							return field.getName().equalsIgnoreCase(pathFile);
 						}).findFirst();
 				if (filePathAnnotation.isPresent()) {
 					params.getFields().put(filePathAnnotation.get().getName(), os.getKey());
 				}
 				String idField = typeParameterClass.getAnnotation(GenericEntity.class).fieldId();
-				Optional<java.lang.reflect.Field> idAnnotation = FieldUtils.getAllFields(typeParameterClass).stream()
-						.filter(field -> {
+				Optional<java.lang.reflect.Field> idAnnotation = getServiceContainer().getConverterClass()
+						.getAllFields(typeParameterClass).stream().filter(field -> {
 							return field.getName().equalsIgnoreCase(idField);
 						}).findFirst();
 				if (idAnnotation.isPresent()) {
@@ -128,8 +128,9 @@ public class S3Delegate<T extends GenericItem> extends GenericDelegate<T> {
 							HashFactory.convertToHex(FileUtils.readFileToByteArray(file)));
 				}
 
-				serviceContainer.getFactoryConverter().getModelMapper().map(typeParameterClass
-						.cast(FieldUtils.createInstanceFromClassAndValues(typeParameterClass, params, null)), obj);
+				serviceContainer.getFactoryConverter().getModelMapper()
+						.map(typeParameterClass.cast(getServiceContainer().getConverterClass()
+								.createInstanceFromClassAndValues(typeParameterClass, params, null)), obj);
 				if (params.getFields().get(GenericConstants.SEARCH_PARAMS_FULLTEXT_SEARCH) != null
 						&& params.getFields().get(GenericConstants.SEARCH_PARAMS_FULLTEXT_SEARCH).equals(os.getKey())) {
 					results.add(obj);
@@ -140,8 +141,8 @@ public class S3Delegate<T extends GenericItem> extends GenericDelegate<T> {
 		} catch (Exception e) {
 			throw new GenericException("Error search ");
 		}
-
-		return results;
+		GenericResults genericResults = new GenericResults(results, Integer.valueOf(results.size()).longValue());
+		return genericResults;
 	}
 
 	/**
@@ -189,12 +190,12 @@ public class S3Delegate<T extends GenericItem> extends GenericDelegate<T> {
 		}
 
 		try {
-			Optional<java.lang.reflect.Field> fileAnnotation = FieldUtils
+			Optional<java.lang.reflect.Field> fileAnnotation = getServiceContainer().getConverterClass()
 					.getFieldFromAnnotation(item.getObj().getClass(), FileUpload.class);
 			fileAnnotation.get().setAccessible(true);
 			File file = (File) fileAnnotation.get().get(item.getObj());
-			Optional<java.lang.reflect.Field> pathField = FieldUtils.getAllFields(item.getTypeClass()).stream()
-					.filter(field -> {
+			Optional<java.lang.reflect.Field> pathField = getServiceContainer().getConverterClass()
+					.getAllFields(item.getTypeClass()).stream().filter(field -> {
 						return field.getName()
 								.equalsIgnoreCase(fileAnnotation.get().getAnnotation(FileUpload.class).fieldPath());
 					}).findFirst();

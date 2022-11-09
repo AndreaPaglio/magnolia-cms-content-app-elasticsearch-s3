@@ -15,7 +15,9 @@ public interface CustomContainer extends Container.Hierarchical, Container.ItemS
 
 	public Optional<CustomContentConnector> getContentConnector();
 
-	public  void setContentConnector(Optional<CustomContentConnector> opt);
+	public void setContentConnector(Optional<CustomContentConnector> opt);
 
 	void createConnection(Params params) throws Exception;
+
+	public void refreshDelegate(Params params) throws GenericException;
 }

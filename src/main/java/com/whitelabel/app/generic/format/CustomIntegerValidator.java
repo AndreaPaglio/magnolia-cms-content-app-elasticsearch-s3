@@ -30,17 +30,14 @@ public class CustomIntegerValidator extends IntegerValidator {
 	 */
 	@Override
 	protected boolean isValidValue(String value) {
-		return Optional.ofNullable(value)//
-				.filter(v -> !v.isEmpty())//
-				.map(v -> {
-					try {
-						Integer.parseInt(v);
-						return true;
-					} catch (Exception e) {
-						return false;
-					}
-				})//
-				.orElse(Boolean.TRUE);
+		return Optional.ofNullable(value).filter(v -> !v.isEmpty()).map(v -> {
+			try {
+				Integer.parseInt(v);
+				return true;
+			} catch (Exception e) {
+				return false;
+			}
+		}).orElse(Boolean.TRUE);
 	}
 
 }

@@ -154,7 +154,6 @@ public class ManageElasticSearchSubApp extends BaseSubApp<CustomTwoColumnView> i
 		if (((CustomContentConnector) contentConnector).getQueryDelegate() != null) {
 			((CustomContentConnector) contentConnector).getQueryDelegate().setServiceContainer(serviceContainer);
 		}
-//		serviceContainer.setS3Delegate(((CustomContentConnector) contentConnector).getQueryDelegate());
 		serviceContainer.getS3Delegate().setServiceContainer(serviceContainer);
 		serviceContainer.getElasticSearchDelegate().setServiceContainer(serviceContainer);
 		serviceContainer.setSearch(search);
@@ -171,7 +170,6 @@ public class ManageElasticSearchSubApp extends BaseSubApp<CustomTwoColumnView> i
 		Optional<CustomContentConnector> o = Optional.of(c);
 		serviceContainer.setContentConnector((CustomContentConnector) contentConnector);
 		serviceContainer.getCustomContainer().setContentConnector(o);
-//		serviceContainer.getContentConnector().getQueryDelegate().setServiceContainer(serviceContainer);
 
 		serviceContainer.getUiService().setContentEventManager(contentEventManager);
 		this.serviceContainer = serviceContainer;

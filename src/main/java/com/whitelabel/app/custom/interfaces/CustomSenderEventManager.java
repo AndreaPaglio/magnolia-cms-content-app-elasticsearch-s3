@@ -10,7 +10,9 @@ import com.whitelabel.app.event.AddItem;
 import com.whitelabel.app.event.AddItemEvent;
 import com.whitelabel.app.event.GenericSearchEvent;
 import com.whitelabel.app.generic.search.Params;
+import com.whitelabel.app.generic.utils.GenericConstants;
 
+import info.magnolia.context.MgnlContext;
 import info.magnolia.event.EventBus;
 import info.magnolia.ui.api.app.SubAppContext;
 import info.magnolia.ui.api.app.SubAppEventBus;
@@ -65,6 +67,7 @@ public class CustomSenderEventManager implements Listener {
 	 */
 	@Override
 	public void onSearchConfiguration(Params params) {
+		MgnlContext.getWebContext().getRequest().getSession().setAttribute(GenericConstants.SEARCH_PARAMS, params);
 		appEventBus.fireEvent(new GenericSearchEvent(params));
 	}
 
@@ -85,8 +88,6 @@ public class CustomSenderEventManager implements Listener {
 	 */
 	@Override
 	public void editItem() {
-		// TODO Auto-generated method stub
-
 	}
 
 	/**
@@ -94,14 +95,11 @@ public class CustomSenderEventManager implements Listener {
 	 */
 	@Override
 	public void deleteItem() {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public void refreshCache(Params searchParams) {
 		appEventBus.fireEvent(new RefreshCacheEvent(searchParams));
-
 	}
 
 }

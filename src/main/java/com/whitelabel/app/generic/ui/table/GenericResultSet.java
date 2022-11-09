@@ -14,6 +14,7 @@ import com.whitelabel.app.generic.entity.GenericItem;
 import com.whitelabel.app.generic.others.GenericException;
 import com.whitelabel.app.generic.search.Params;
 import com.whitelabel.app.generic.search.ResultContainer;
+import com.whitelabel.app.generic.service.RepositoryService;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -46,19 +47,24 @@ public class GenericResultSet<T extends GenericItem> implements CustomResultSet 
 	@Setter
 	private ResultContainer resultContainer;
 
+	@Getter
+	@Setter
+	private Long totalSize;
+
 	/**
 	 * Instantiates a new elastic search result set.
 	 *
-	 * @param typeClass the type class
+	 * @param typeClass        the type class
+	 * @param serviceContainer TODO
 	 */
-	public GenericResultSet(Class<? extends GenericItem> typeClass) {
+	public GenericResultSet(Class<? extends GenericItem> typeClass, RepositoryService serviceContainer) {
 		super();
 		if (typeClass != null) {
 			this.typeClass = typeClass;
 			this.results = new ArrayList<T>();
 			GenericEntity index = typeClass.getAnnotation(GenericEntity.class);
 			if (index != null && StringUtils.isNotEmpty(index.name())) {
-				this.resultMeta = new GenericResultMeta(typeClass);
+				this.resultMeta = new GenericResultMeta(typeClass, serviceContainer);
 			}
 		}
 		resultContainer = new ResultContainer();
@@ -149,7 +155,6 @@ public class GenericResultSet<T extends GenericItem> implements CustomResultSet 
 				field.setAccessible(true);
 				value = field.get(obj);
 			}
-//	    rowCount++;
 			return value;
 		} catch (IllegalArgumentException | IllegalAccessException e) {
 			return null;

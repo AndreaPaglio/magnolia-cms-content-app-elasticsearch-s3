@@ -8,8 +8,6 @@ import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -23,6 +21,7 @@ import com.google.gson.JsonParser;
 import com.whitelabel.app.generic.annotation.Format;
 import com.whitelabel.app.generic.entity.GenericItem;
 import com.whitelabel.app.generic.search.Params;
+import com.whitelabel.app.generic.service.RepositoryService;
 
 import lombok.Getter;
 
@@ -30,9 +29,6 @@ import lombok.Getter;
  * Factory manage Json: entity and entity: Json conversion.
  */
 public class FactoryConverter {
-
-	/** The convert map. */
-	private static Map<String, Params> convertMap = new HashMap<String, Params>();;
 
 	/** The builder to string. */
 	GsonBuilder builderToString;
@@ -43,15 +39,21 @@ public class FactoryConverter {
 	@Getter
 	ModelMapper modelMapper;
 
+	@Getter
+	@Inject
+	RepositoryService serviceRepository;
+
 	/**
 	 * Instantiates a new factory converter.
 	 */
 	@Inject
-	public FactoryConverter() {
-		builderToString = new GsonBuilder().excludeFieldsWithoutExposeAnnotation();
+	public FactoryConverter(RepositoryService serviceRepository) {
+		builderToString = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().registerTypeAdapter(String.class,
+				new EmptyStringSerializer());
 		builderToParamsSearch = new Gson();
 		modelMapper = new ModelMapper();
 		modelMapper.getConfiguration().setPropertyCondition(Conditions.isNotNull());
+		this.serviceRepository = serviceRepository;
 
 	}
 
@@ -82,8 +84,8 @@ public class FactoryConverter {
 			return new Params();
 		}
 
-		if (convertMap.containsKey(params)) {
-			return convertMap.get(params);
+		if (serviceRepository.getCacheHelper().containsFactoryConvertKey(params)) {
+			return serviceRepository.getCacheHelper().getFactoryConvert(params);
 		} else {
 			Params paramsSearch = builderToParamsSearch.fromJson(params, Params.class);
 			if (paramsSearch == null) {
@@ -96,10 +98,10 @@ public class FactoryConverter {
 					&& jsonObject.get("fields").getAsJsonObject().get("index") != null) {
 				paramsSearch.getFields().put(GenericConstants.INDEX_ID,
 						jsonObject.get("fields").getAsJsonObject().get("index").getAsString());
-				paramsSearch.setClassType(FieldUtils.getClassFromClassName(
+				paramsSearch.setClassType(serviceRepository.getConverterClass().getClassFromClassName(
 						jsonObject.get("fields").getAsJsonObject().get("index").getAsString(), GenericItem.class));
 			}
-			convertMap.put(params, paramsSearch);
+			serviceRepository.getCacheHelper().putFactoryConvert(paramsSearch.toString(), paramsSearch);
 			return paramsSearch;
 		}
 	}

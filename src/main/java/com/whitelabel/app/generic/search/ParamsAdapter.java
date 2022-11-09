@@ -9,6 +9,7 @@ import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.Upload;
+import com.whitelabel.app.generic.service.RepositoryService;
 import com.whitelabel.app.generic.ui.CustomFieldFilter;
 import com.whitelabel.app.generic.ui.OptionsCustomUi;
 import com.whitelabel.app.generic.utils.GenericConstants;
@@ -29,13 +30,15 @@ public class ParamsAdapter {
 	/** The builder params. */
 	GenericParamsBuilder builderParams;
 
+	RepositoryService repositoryService;
+
 	/**
 	 * Instantiates a new params search adapter.
 	 *
 	 * @param params the params
 	 */
-	public ParamsAdapter(Params params) {
-		builderParams = GenericParamsBuilder.createSearch().params(params);
+	public ParamsAdapter(Params params, RepositoryService repositoryService) {
+		builderParams = GenericParamsBuilder.createSearch(repositoryService).params(params);
 		this.params = params;
 	}
 

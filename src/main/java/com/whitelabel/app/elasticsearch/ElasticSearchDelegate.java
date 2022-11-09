@@ -25,7 +25,7 @@ import com.whitelabel.app.generic.others.GenericException;
 import com.whitelabel.app.generic.search.BoostField;
 import com.whitelabel.app.generic.search.Params;
 import com.whitelabel.app.generic.service.RepositoryService;
-import com.whitelabel.app.generic.utils.FieldUtils;
+import com.whitelabel.app.generic.ui.table.GenericResults;
 
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.FieldSort;
@@ -86,10 +86,7 @@ public class ElasticSearchDelegate<T extends GenericItem> extends GenericDelegat
 	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
 	@Override
-	public List<? extends GenericItem> search(String indexName, Params searchParams) throws GenericException {
-		if (!hasExecuteSetup(indexName)) {
-			setup(indexName, typeParameterClass);
-		}
+	public GenericResults search(String indexName, Params searchParams) throws GenericException {
 		Map<String, Object> filterByField = searchParams.getFields().entrySet().stream().filter(key -> {
 			try {
 				Boolean isNotEmpty;
@@ -171,6 +168,7 @@ public class ElasticSearchDelegate<T extends GenericItem> extends GenericDelegat
 			if (searchParams.isSimpleQueryString() || searchParams.isFieldFiltered()) {
 				s.query(queryBuilder);
 			}
+			s.from(searchParams.getOffset());
 			s.size(searchParams.getSize());
 			return s;
 		};
@@ -187,8 +185,8 @@ public class ElasticSearchDelegate<T extends GenericItem> extends GenericDelegat
 		} catch (IOException e) {
 			throw new GenericException("Error search ");
 		}
-
-		return results;
+		GenericResults genericResults = new GenericResults(results, search.hits().total().value());
+		return genericResults;
 	}
 
 	/**
@@ -225,7 +223,7 @@ public class ElasticSearchDelegate<T extends GenericItem> extends GenericDelegat
 	@Override
 	public void setup(String fieldName, Class typeClass) throws GenericException {
 		// Create index with all sortable fields
-		List<java.lang.reflect.Field> classFields = FieldUtils.getAllFields(typeClass);
+		List<java.lang.reflect.Field> classFields = serviceContainer.getConverterClass().getAllFields(typeClass);
 		List<Field> fields = classFields.stream().map(f2 -> {
 			return Field.instanceFrom(f2, fieldName);
 		}).collect(Collectors.toList());

@@ -44,12 +44,13 @@ import com.whitelabel.app.generic.ui.table.OrderBy;
 import com.whitelabel.app.generic.ui.table.RowId;
 import com.whitelabel.app.generic.ui.table.RowItem;
 import com.whitelabel.app.generic.ui.table.TemporaryRowId;
-import com.whitelabel.app.generic.utils.FieldUtils;
 import com.whitelabel.app.generic.utils.GenericConstants;
 
+import info.magnolia.context.MgnlContext;
 import info.magnolia.objectfactory.ComponentProvider;
 import info.magnolia.ui.vaadin.integration.contentconnector.AbstractContentConnector;
 import info.magnolia.ui.vaadin.integration.contentconnector.ContentConnectorDefinition;
+import lombok.Getter;
 
 /**
  * Container represent elastic search connector for manage all operations within
@@ -85,7 +86,8 @@ public class GenericContentConnector<T extends GenericItem> extends AbstractCont
 	@Inject
 	private RepositoryService serviceContainer;
 
-	CustomResultSet rs;
+	@Getter
+	private CustomResultSet resultset;
 
 	public GenericContentConnector(ContentConnectorDefinition contentConnectorDefinition) {
 		super(contentConnectorDefinition);
@@ -198,7 +200,7 @@ public class GenericContentConnector<T extends GenericItem> extends AbstractCont
 	public Item getItem(Object itemId) {
 		if (!serviceContainer.getCacheHelper().containsItemsKey((RowId) itemId)) {
 			int index = indexOfId(itemId);
-			Item item = rs.getResultContainer().getResultIndexes().get(itemId);
+			Item item = resultset.getResultContainer().getResultIndexes().get(itemId);
 			serviceContainer.getCacheHelper().putCachedItems((RowId) itemId, (RowItem) item);
 		}
 		return serviceContainer.getCacheHelper().getCachedItems((RowId) itemId);
@@ -218,14 +220,16 @@ public class GenericContentConnector<T extends GenericItem> extends AbstractCont
 		updateCount();
 
 		try {
-			if (!serviceContainer.getCacheHelper().containsCachedResultsKey(params.toString())) {
-				rs = queryDelegate.search(params);
-				serviceContainer.getCacheHelper().putCachedResults(params.toString(), rs);
+			String stringParams = serviceContainer.getFactoryConverter().convert(params);
+
+			if (!serviceContainer.getCacheHelper().containsCachedResultsKey(stringParams)) {
+				resultset = queryDelegate.search(params);
+				serviceContainer.getCacheHelper().putCachedResults(stringParams, resultset);
 			} else {
-				rs = serviceContainer.getCacheHelper().getCachedResults(params.toString());
+				resultset = serviceContainer.getCacheHelper().getCachedResults(stringParams);
 			}
-			if (rs != null && rs.getResultContainer() != null) {
-				ids = rs.getResultContainer().getIds();
+			if (resultset != null && resultset.getResultContainer() != null) {
+				ids = resultset.getResultContainer().getIds();
 			}
 		} catch (Exception e) {
 			serviceContainer.getLogService().logger(LogStatus.ERROR, "getItemIds() failed, rolling back.",
@@ -392,9 +396,9 @@ public class GenericContentConnector<T extends GenericItem> extends AbstractCont
 	 */
 	@Override
 	public int indexOfId(Object itemId) {
-		if (rs.getResultContainer().getItemIndexes().containsValue(itemId)) {
-			for (Integer idx : rs.getResultContainer().getItemIndexes().keySet()) {
-				if (rs.getResultContainer().getItemIndexes().get(idx).equals(itemId)) {
+		if (resultset.getResultContainer().getItemIndexes().containsValue(itemId)) {
+			for (Integer idx : resultset.getResultContainer().getItemIndexes().keySet()) {
+				if (resultset.getResultContainer().getItemIndexes().get(idx).equals(itemId)) {
 					return idx;
 				}
 			}
@@ -414,12 +418,12 @@ public class GenericContentConnector<T extends GenericItem> extends AbstractCont
 			throw new IndexOutOfBoundsException("Index is negative! index=" + index);
 		}
 
-		if (rs != null && rs.getResultContainer() != null && rs.getResultContainer().getItemIndexes() != null
-				&& index <= updateCount()) {
-			if (rs.getResultContainer().getItemIndexes().keySet().contains(index)) {
-				return rs.getResultContainer().getItemIndexes().get(index);
+		if (resultset != null && resultset.getResultContainer() != null
+				&& resultset.getResultContainer().getItemIndexes() != null && index <= updateCount()) {
+			if (resultset.getResultContainer().getItemIndexes().keySet().contains(index)) {
+				return resultset.getResultContainer().getItemIndexes().get(index);
 			}
-			return rs.getResultContainer().getItemIndexes().get(index);
+			return resultset.getResultContainer().getItemIndexes().get(index);
 		}
 		return null;
 	}
@@ -476,7 +480,7 @@ public class GenericContentConnector<T extends GenericItem> extends AbstractCont
 	@Override
 	public Object firstItemId() {
 		updateCount();
-		return rs.getResultContainer().getItemIndexes().get(0);
+		return resultset.getResultContainer().getItemIndexes().get(0);
 	}
 
 	/**
@@ -487,7 +491,7 @@ public class GenericContentConnector<T extends GenericItem> extends AbstractCont
 	@Override
 	public Object lastItemId() {
 		int lastIx = size() - 1;
-		return rs.getResultContainer().getItemIndexes().get(lastIx);
+		return resultset.getResultContainer().getItemIndexes().get(lastIx);
 	}
 
 	/**
@@ -656,7 +660,7 @@ public class GenericContentConnector<T extends GenericItem> extends AbstractCont
 		GenericResultMeta rsmd = null;
 		try {
 			Class<?> type = null;
-			rsmd = new GenericResultMeta(typeClass);
+			rsmd = new GenericResultMeta(typeClass, serviceContainer);
 
 			for (int i = 0; i < rsmd.getColumnCount(); i++) {
 				String colName = rsmd.getColumnLabel(i);
@@ -724,9 +728,8 @@ public class GenericContentConnector<T extends GenericItem> extends AbstractCont
 					if (!queryDelegate.hasExecuteSetup(annotation.name())) {
 						queryDelegate.setup(annotation.name(), itemId.getClass());
 					}
-//
-					String id = (String) FieldUtils.getFieldFromInstance(typeClass, (T) itemId,
-							GenericConstants.PARAM_ID);
+					String id = (String) serviceContainer.getConverterClass().getFieldFromInstance(typeClass,
+							(T) itemId, GenericConstants.PARAM_ID);
 					if (!StringUtils.isNotEmpty(id)) {
 						id = UUID.randomUUID().toString();
 					}
@@ -826,6 +829,7 @@ public class GenericContentConnector<T extends GenericItem> extends AbstractCont
 	 *
 	 * @return the sorters
 	 */
+	@Override
 	public List<OrderBy> getSorters() {
 		return sorters;
 	}
@@ -837,7 +841,7 @@ public class GenericContentConnector<T extends GenericItem> extends AbstractCont
 	 */
 	@Override
 	public Map<Integer, RowId> getItemIndexes() {
-		return rs.getResultContainer().getItemIndexes();
+		return resultset.getResultContainer().getItemIndexes();
 	}
 
 	/**
@@ -853,16 +857,19 @@ public class GenericContentConnector<T extends GenericItem> extends AbstractCont
 		Map<String, String> sorts = sorters.stream().collect(Collectors.toMap(OrderBy::getColumn, f -> {
 			return f.isAscending() ? GenericConstants.ORDER_ASC : GenericConstants.ORDER_DESC;
 		}));
+		MgnlContext.getWebContext().getRequest().getSession().setAttribute(GenericConstants.SEARCH_PARAMS, params);
+
 		params.setOrders(sorts);
 		this.params = params;
-		if (queryDelegate != null && !serviceContainer.getCacheHelper().containsCachedResultsKey(params.toString())) {
-			rs = queryDelegate.search(params);
-			serviceContainer.getCacheHelper().putCachedResults(params.toString(), rs);
+		String stringParams = serviceContainer.getFactoryConverter().convert(params);
+		if (queryDelegate != null && !serviceContainer.getCacheHelper().containsCachedResultsKey(stringParams)) {
+			resultset = queryDelegate.search(params);
+			serviceContainer.getCacheHelper().putCachedResults(stringParams, resultset);
 		} else {
-			rs = serviceContainer.getCacheHelper().getCachedResults(params.toString());
+			resultset = serviceContainer.getCacheHelper().getCachedResults(stringParams);
 		}
 
-		return rs;
+		return resultset;
 	}
 
 	@Override
@@ -939,7 +946,6 @@ public class GenericContentConnector<T extends GenericItem> extends AbstractCont
 			this.params = params;
 			this.queryDelegate.setTypeParameterClass(typeClass);
 			refreshPropertyIds();
-			this.queryDelegate.search(params);
 		}
 	}
 

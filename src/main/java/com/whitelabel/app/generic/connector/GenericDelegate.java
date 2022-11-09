@@ -28,11 +28,11 @@ import com.whitelabel.app.generic.service.RepositoryService;
 import com.whitelabel.app.generic.ui.table.ColumnProperty;
 import com.whitelabel.app.generic.ui.table.CustomResultSet;
 import com.whitelabel.app.generic.ui.table.GenericResultSet;
+import com.whitelabel.app.generic.ui.table.GenericResults;
 import com.whitelabel.app.generic.ui.table.OrderBy;
 import com.whitelabel.app.generic.ui.table.ResultSetMetaData;
 import com.whitelabel.app.generic.ui.table.RowId;
 import com.whitelabel.app.generic.ui.table.RowItem;
-import com.whitelabel.app.generic.utils.FieldUtils;
 import com.whitelabel.app.generic.utils.GenericConstants;
 
 import info.magnolia.init.MagnoliaConfigurationProperties;
@@ -66,7 +66,7 @@ public abstract class GenericDelegate<T extends GenericItem> implements QueryDel
 	@Inject
 	public GenericDelegate(RepositoryService serviceContainer) throws GenericException {
 		magnoliaConfigurationProperties = Components.getComponent(MagnoliaConfigurationProperties.class);
-		resultset = new GenericResultSet<T>(typeParameterClass);
+		resultset = new GenericResultSet<T>(typeParameterClass, serviceContainer);
 		this.params = new Params();
 		resultset.setResults(new ArrayList<T>());
 		if (resultset.getMetaData() != null) {
@@ -96,11 +96,13 @@ public abstract class GenericDelegate<T extends GenericItem> implements QueryDel
 			searchParams = new Params();
 		}
 		if (typeParameterClass != null) {
-			resultset = new GenericResultSet<T>(typeParameterClass);
+			resultset = new GenericResultSet<T>(typeParameterClass, serviceContainer);
 
 			GenericEntity index = typeParameterClass.getAnnotation(GenericEntity.class);
 			if (index != null && StringUtils.isNotEmpty(index.name())) {
-				resultset.setResults(search(index.name(), searchParams));
+				GenericResults search = search(index.name(), searchParams);
+				resultset.setResults(search.getSearch());
+				resultset.setTotalSize(search.getTotal());
 				resultset.setParamsSearch(searchParams);
 				resultset.setResultContainer(convertResultSetInCollectionItems(resultset));
 			}
@@ -116,7 +118,7 @@ public abstract class GenericDelegate<T extends GenericItem> implements QueryDel
 	 */
 	@Override
 	public List<Class<? extends GenericItem>> getAllTypeItems() {
-		return FieldUtils.getAllClassGenericItem(GenericItem.class);
+		return serviceContainer.getConverterClass().getAllClassGenericItem(GenericItem.class);
 	}
 
 	@Override
@@ -279,7 +281,7 @@ public abstract class GenericDelegate<T extends GenericItem> implements QueryDel
 		return result;
 	}
 
-	public abstract List<? extends GenericItem> search(String indexName, Params searchParams) throws GenericException;
+	public abstract GenericResults search(String indexName, Params searchParams) throws GenericException;
 
 	@Override
 	public abstract CustomConnection getConnection();

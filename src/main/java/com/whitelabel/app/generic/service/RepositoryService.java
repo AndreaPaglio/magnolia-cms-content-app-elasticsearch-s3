@@ -9,6 +9,7 @@ import com.whitelabel.app.generic.connector.FactoryContainer;
 import com.whitelabel.app.generic.others.CacheHelper;
 import com.whitelabel.app.generic.ui.service.GenericContentConnectorDefinition;
 import com.whitelabel.app.generic.utils.FactoryConverter;
+import com.whitelabel.app.generic.utils.GenericClassConverter;
 
 import info.magnolia.event.EventBus;
 
@@ -73,5 +74,9 @@ public interface RepositoryService {
 	public void setLogService(LogService logService);
 
 	public LogService getLogService();
+
+	public void setConverterClass(GenericClassConverter converterClass);
+
+	public GenericClassConverter getConverterClass();
 
 }

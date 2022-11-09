@@ -6,10 +6,8 @@ package com.whitelabel.app.generic.ui.table;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.inject.Inject;
-
 import com.vaadin.v7.data.Container;
-import com.whitelabel.app.event.GenericSearchEvent;
+import com.whitelabel.app.generic.others.GenericException;
 import com.whitelabel.app.generic.others.LogStatus;
 import com.whitelabel.app.generic.search.Params;
 import com.whitelabel.app.generic.service.RepositoryService;
@@ -19,21 +17,18 @@ import info.magnolia.context.MgnlContext;
 import info.magnolia.objectfactory.ComponentProvider;
 import info.magnolia.ui.vaadin.grid.MagnoliaTable;
 import info.magnolia.ui.workbench.list.ListView;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Custom table UI
  */
-@Data
 public class CustomTable extends MagnoliaTable {
-
-	/** The Constant serialVersionUID. */
-	private static final long serialVersionUID = 1L;
 
 	/** The sort map. */
 	Map<String, Boolean> sortMap;
-
-	@Inject
+	@Getter
+	@Setter
 	private RepositoryService serviceContainer;
 
 	/**
@@ -46,11 +41,11 @@ public class CustomTable extends MagnoliaTable {
 	/**
 	 * Instantiates a new custom table.
 	 *
-	 * @param dataSource    the data source
-	 * @param appEventBus   the app event bus
-	 * @param uiEventAction the ui event action
+	 * @param dataSource       the data source
+	 * @param serviceContainer TODO
+	 * @param appEventBus      the app event bus
+	 * @param uiEventAction    the ui event action
 	 */
-	@Inject
 	public CustomTable(Container dataSource) {
 		super(dataSource);
 		sortMap = new HashMap<>();
@@ -172,7 +167,8 @@ public class CustomTable extends MagnoliaTable {
 					e);
 		}
 		if (lastToBeRendered != null && firstvisible != null
-				&& (((lastToBeRendered - firstvisible) < 35) || (lastToBeRendered) < 35)) {
+				&& (((lastToBeRendered - firstvisible) < GenericConstants.SEARCH_PARAMS_DEFAULT_SIZE_PAGE)
+						|| (lastToBeRendered) < GenericConstants.SEARCH_PARAMS_DEFAULT_SIZE_PAGE)) {
 			Object params = MgnlContext.getWebContext().getRequest().getSession()
 					.getAttribute(GenericConstants.SEARCH_PARAMS);
 			Params convertParams = null;
@@ -182,16 +178,24 @@ public class CustomTable extends MagnoliaTable {
 			} else {
 				convertParams = serviceContainer.getUiService().getUiEventAction().fillParamsItem();
 			}
-			convertParams.setSize(convertParams.getSize() + GenericConstants.DEFAULT_PAGE_LENGTH);
+			try {
+				if (serviceContainer.getCustomContainer().getContentConnector().get().getResultset() != null
+						&& serviceContainer.getCustomContainer().getContentConnector().get().getResultset()
+								.getTotalSize() > (convertParams.getSize())) {
+					convertParams.setSize(convertParams.getSize() + convertParams.getSizePage());
+					serviceContainer.getCustomContainer().refreshDelegate(convertParams);
+				}
+			} catch (GenericException e) {
+				serviceContainer.getLogService().logger(LogStatus.ERROR, "Error change Variables", CustomTable.class,
+						e);
+			}
 			MgnlContext.getWebContext().getRequest().getSession().setAttribute(GenericConstants.SEARCH_PARAMS,
 					convertParams);
 			Class indexClass = (Class) MgnlContext.getWebContext().getRequest().getSession()
 					.getAttribute(GenericConstants.SELECT_INDEX_KEY);
 			convertParams.setClassType(indexClass);
 			convertParams.getFields().put(GenericConstants.FILTER_INDEX, indexClass.getName());
-			serviceContainer.getSubAppEventBus().fireEvent(new GenericSearchEvent(convertParams));
 		}
-
 	}
 
 	/**

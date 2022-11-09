@@ -61,7 +61,7 @@ public class UiServiceImpl implements UiService {
 
 	private FactoryConverter factoryConverter;
 
-	public UiServiceImpl() {
-		factoryConverter = new FactoryConverter();
+	public UiServiceImpl(RepositoryService serviceRepository) {
+		factoryConverter = new FactoryConverter(serviceRepository);
 	}
 }

@@ -98,4 +98,8 @@ public interface CustomResultSet<T> {
 	 */
 	ResultSetMetaData getMetaData() throws GenericException;
 
+	public void setTotalSize(Long totalSize);
+
+	public Long getTotalSize();
+
 }

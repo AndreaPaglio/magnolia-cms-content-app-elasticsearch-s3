@@ -25,11 +25,8 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class Params implements Serializable {
-	@Expose
 	private Class source;
 
-	@Expose
-	/** The type. */
 	private TypeParam type;
 	@Expose
 	/** The fields. */
@@ -49,8 +46,6 @@ public class Params implements Serializable {
 	@Expose
 	/** The relevance search. */
 	private RelevanceSearch relevanceSearch;
-
-	/** The class type. */
 
 	private Class<? extends GenericItem> classType;
 
@@ -87,9 +82,16 @@ public class Params implements Serializable {
 
 	@Override
 	public String toString() {
-		return "ParamsES [type=" + type + ", fields=" + fields + ", orders=" + orders + ", sizePage=" + sizePage
-				+ ", size=" + size + ", offset=" + offset + ", relevanceSearch=" + relevanceSearch + ", classType="
-				+ classType + "]";
+		Map<String, Object> printFields = new HashMap<String, Object>();
+		for (String key : fields.keySet()) {
+			if ((fields.get(key) != null && (!(fields.get(key) instanceof String))
+					|| (fields.get(key) != null && fields.get(key) instanceof String)
+							&& StringUtils.isNotEmpty((String) fields.get(key)))) {
+				printFields.put(key, fields.get(key));
+			}
+		}
+		return "Params [fields=" + printFields + ", orders=" + orders + ", sizePage=" + sizePage + ", size=" + size
+				+ ", offset=" + offset + "]";
 	}
 
 }

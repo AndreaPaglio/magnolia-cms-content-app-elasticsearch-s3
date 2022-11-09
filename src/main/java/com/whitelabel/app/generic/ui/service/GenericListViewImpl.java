@@ -83,7 +83,10 @@ public class GenericListViewImpl implements ListSearchViewAppInterface {
 		table.setColumnCollapsingAllowed(true);
 		table.setColumnReorderingAllowed(true);
 		manageTableEvent.setCellStyleGenerator();
+		table.setPageLength(10);
+		table.setImmediate(true);
 
+		table.setSizeFull();
 		table.addStyleName("no-header-checkbox");
 		serviceContainer.getUiService().setTable(table);
 		bindHandlers();
@@ -153,14 +156,12 @@ public class GenericListViewImpl implements ListSearchViewAppInterface {
 	 * @param appEventBus the app event bus
 	 * @return the custom table
 	 */
-	@SuppressWarnings("deprecation")
 	public CustomTable createTable(Container container, EventBus appEventBus) {
 		CustomTable table = new CustomTable(container);
-		table.setSortEnabled(Boolean.TRUE);
+		table.setServiceContainer(serviceContainer);
 		manageTableEvent = new TableEventServiceImpl(table, listener, serviceContainer.getFactoryContainer(),
-				customTwoColumnView);
+				customTwoColumnView, serviceContainer);
 		manageTableEvent.addColumnReorderListener();
-		table.setSizeFull();
 		return table;
 	}
 

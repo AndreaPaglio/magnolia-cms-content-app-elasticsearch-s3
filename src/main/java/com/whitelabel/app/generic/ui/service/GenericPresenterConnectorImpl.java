@@ -58,7 +58,6 @@ public class GenericPresenterConnectorImpl extends SearchPresenter {
 	 */
 	@Override
 	public void clear() {
-//		((GenericContainer) container).setFullTextExpression("");
 		refresh();
 	}
 

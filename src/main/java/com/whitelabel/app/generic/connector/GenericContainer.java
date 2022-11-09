@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
@@ -17,7 +18,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.vaadin.v7.data.Container;
-import com.vaadin.v7.data.Container.ItemSetChangeListener;
 import com.vaadin.v7.data.Item;
 import com.vaadin.v7.data.Property;
 import com.vaadin.v7.data.util.filter.UnsupportedFilterException;
@@ -30,8 +30,8 @@ import com.whitelabel.app.generic.others.LogStatus;
 import com.whitelabel.app.generic.search.GenericParamsBuilder;
 import com.whitelabel.app.generic.search.Params;
 import com.whitelabel.app.generic.service.RepositoryService;
+import com.whitelabel.app.generic.ui.table.OrderBy;
 import com.whitelabel.app.generic.utils.FactoryConverter;
-import com.whitelabel.app.generic.utils.FieldUtils;
 import com.whitelabel.app.generic.utils.GenericConstants;
 
 import info.magnolia.context.MgnlContext;
@@ -62,7 +62,7 @@ public class GenericContainer implements CustomContainer {
 	private RepositoryService serviceContainer;
 
 	public <T extends GenericItem> GenericContainer() throws GenericException {
-		setParams(GenericParamsBuilder.createSearch().get());
+		setParams(GenericParamsBuilder.createSearch(serviceContainer).get());
 		this.contentConnector = Optional.empty();
 	}
 
@@ -77,7 +77,7 @@ public class GenericContainer implements CustomContainer {
 	 */
 	public <T extends GenericItem> GenericContainer(Class<T> typeIndexESClass, FactoryContainer factory,
 			FactoryConverter factoryConverter) throws GenericException {
-		setParams(GenericParamsBuilder.createSearch()
+		setParams(GenericParamsBuilder.createSearch(serviceContainer)
 				.addField(GenericConstants.FILTER_INDEX, typeIndexESClass.getCanonicalName()).get());
 		createCustomContainer(params);
 	}
@@ -90,7 +90,8 @@ public class GenericContainer implements CustomContainer {
 	 */
 	@Override
 	public <T extends GenericItem> void createCustomContainer(Params params) throws GenericException {
-		Class<? extends GenericItem> searchedClass = FieldUtils.getClassFromSearchParams(params, GenericItem.class);
+		Class<? extends GenericItem> searchedClass = serviceContainer.getConverterClass()
+				.getClassFromParams(params, GenericItem.class);
 		searchedClass = FactoryContainer.getDefaultIndex();
 		params.getFields().put("index", searchedClass.getClass().getName());
 		params.setClassType(searchedClass);
@@ -101,7 +102,7 @@ public class GenericContainer implements CustomContainer {
 			serviceContainer.getFactoryContainer().create(params.getClassType(), this);
 			del.getQueryDelegate().setServiceContainer(serviceContainer);
 			serviceContainer.setContentConnector(del);
-			List<Field> fields = FieldUtils.getAllFields(params.getClassType());
+			List<Field> fields = serviceContainer.getConverterClass().getAllFields(params.getClassType());
 			for (Field field : fields) {
 				addContainerProperty(field.getName(),
 						info.magnolia.ui.workbench.column.definition.PropertyColumnDefinition.class, "-");
@@ -116,10 +117,11 @@ public class GenericContainer implements CustomContainer {
 	 *
 	 * @throws GenericException
 	 */
-	private void refreshDelegate(Params params) throws GenericException {
+	@Override
+	public void refreshDelegate(Params params) throws GenericException {
 		if (serviceContainer.getCustomContainer().getContentConnector().isPresent() && params != null) {
-//			createCustomContainer(params);
 			try {
+				fillOrderFields(params);
 				serviceContainer.getCustomContainer().getContentConnector().get().getResults(params);
 				serviceContainer.getCustomContainer().getContentConnector().get().getItemIds();
 			} catch (Exception e) {
@@ -127,6 +129,21 @@ public class GenericContainer implements CustomContainer {
 						e);
 			}
 		}
+	}
+
+	private void fillOrderFields(Params params) {
+		List<OrderBy> orders = params.getOrders().keySet().stream().map(sort -> {
+			OrderBy orderBy = new OrderBy();
+			if (params.getOrders().get(sort) != null && "asc".equalsIgnoreCase(params.getOrders().get(sort))) {
+				orderBy.setAscending(true);
+			}
+
+			orderBy.setColumn(sort);
+
+			return orderBy;
+		}).collect(Collectors.toList());
+		serviceContainer.getCustomContainer().getContentConnector().get().getSorters().clear();
+		serviceContainer.getCustomContainer().getContentConnector().get().getSorters().addAll(orders);
 	}
 
 	/**
@@ -417,8 +434,22 @@ public class GenericContainer implements CustomContainer {
 
 	@Override
 	public List<?> getItemIds(int startIndex, int numberOfItems) {
-		return serviceContainer.getCustomContainer().getContentConnector().get().getItemIds(startIndex, numberOfItems,
-				this);
+		int lastItem = startIndex + numberOfItems;
+		if ((startIndex + numberOfItems) > size()) {
+			if (serviceContainer.getCustomContainer().getContentConnector().get().getResultset()
+					.getTotalSize() > size()) {
+				try {
+					params.setSize(params.getSize() + GenericConstants.DEFAULT_PAGE_LENGTH);
+					serviceContainer.getCustomContainer().getContentConnector().get().getResults(params);
+					serviceContainer.getCustomContainer().getContentConnector().get().getItemIds();
+				} catch (Exception e) {
+					serviceContainer.getLogService().logger(LogStatus.ERROR, "Error search", GenericContainer.class, e);
+				}
+			}
+
+			lastItem = size() - 1;
+		}
+		return serviceContainer.getCustomContainer().getContentConnector().get().getItemIds(startIndex, lastItem, this);
 	}
 
 	@Override
@@ -757,7 +788,7 @@ public class GenericContainer implements CustomContainer {
 
 	@Override
 	public void createConnection(Params params) throws Exception {
-		if (serviceContainer.getCustomContainer().getContentConnector().get() == null) {
+		if (serviceContainer.getCustomContainer().getContentConnector().isEmpty()) {
 			createCustomContainer(params);
 		}
 		serviceContainer.getCustomContainer().getContentConnector().get().createConnection(params);

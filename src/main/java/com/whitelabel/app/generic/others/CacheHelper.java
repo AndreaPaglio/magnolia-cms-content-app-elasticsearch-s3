@@ -1,5 +1,7 @@
 package com.whitelabel.app.generic.others;
 
+import java.util.List;
+
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.StateTransitionException;
@@ -7,6 +9,7 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 
+import com.whitelabel.app.generic.search.Params;
 import com.whitelabel.app.generic.ui.table.CustomResultSet;
 import com.whitelabel.app.generic.ui.table.RowId;
 import com.whitelabel.app.generic.ui.table.RowItem;
@@ -32,6 +35,70 @@ public class CacheHelper {
 				.newCacheConfigurationBuilder(String.class, CustomResultSet.class, ResourcePoolsBuilder.heap(10)));
 		cacheManager.createCache(GenericConstants.CACHED_ITEMS_KEY, CacheConfigurationBuilder
 				.newCacheConfigurationBuilder(RowId.class, RowItem.class, ResourcePoolsBuilder.heap(10)));
+		cacheManager.createCache(GenericConstants.CACHED_FACTORY_CONVERT_STRING_KEY, CacheConfigurationBuilder
+				.newCacheConfigurationBuilder(String.class, Params.class, ResourcePoolsBuilder.heap(10)));
+		cacheManager.createCache(GenericConstants.CACHED_CONVERTER_CLASS_KEY, CacheConfigurationBuilder
+				.newCacheConfigurationBuilder(Class.class, List.class, ResourcePoolsBuilder.heap(10)));
+	}
+
+	public Boolean containsConverterClassKey(Class key) {
+		Cache<Class, List> cacheResults = cacheManager.getCache(GenericConstants.CACHED_CONVERTER_CLASS_KEY,
+				Class.class, List.class);
+		if (cacheResults != null) {
+			return cacheResults.containsKey(key);
+		}
+		return false;
+	}
+
+	public List getConverterClass(Class key) {
+		Cache<Class, List> cacheResults = cacheManager.getCache(GenericConstants.CACHED_CONVERTER_CLASS_KEY,
+				Class.class, List.class);
+		if (cacheResults.containsKey(key)) {
+			return cacheResults.get(key);
+		}
+		return null;
+	}
+
+	public void putConverterClass(Class key, List customResultSet) {
+		Cache<Class, List> cacheResults = cacheManager.getCache(GenericConstants.CACHED_CONVERTER_CLASS_KEY,
+				Class.class, List.class);
+		cacheResults.put(key, customResultSet);
+	}
+
+	public void removeAllConverterClass() {
+		Cache<Class, List> cachedItems = cacheManager.getCache(GenericConstants.CACHED_CONVERTER_CLASS_KEY, Class.class,
+				List.class);
+		cachedItems.clear();
+	}
+
+	public Boolean containsFactoryConvertKey(String key) {
+		Cache<String, Params> cacheResults = cacheManager.getCache(GenericConstants.CACHED_FACTORY_CONVERT_STRING_KEY,
+				String.class, Params.class);
+		if (cacheResults != null) {
+			return cacheResults.containsKey(key);
+		}
+		return false;
+	}
+
+	public Params getFactoryConvert(String key) {
+		Cache<String, Params> cacheResults = cacheManager.getCache(GenericConstants.CACHED_FACTORY_CONVERT_STRING_KEY,
+				String.class, Params.class);
+		if (cacheResults.containsKey(key)) {
+			return cacheResults.get(key);
+		}
+		return null;
+	}
+
+	public void putFactoryConvert(String key, Params customResultSet) {
+		Cache<String, Params> cacheResults = cacheManager.getCache(GenericConstants.CACHED_FACTORY_CONVERT_STRING_KEY,
+				String.class, Params.class);
+		cacheResults.put(key, customResultSet);
+	}
+
+	public void removeAllFactoryConvert() {
+		Cache<String, Params> cachedItems = cacheManager.getCache(GenericConstants.CACHED_FACTORY_CONVERT_STRING_KEY,
+				String.class, Params.class);
+		cachedItems.clear();
 	}
 
 	public Boolean containsCachedResultsKey(String key) {

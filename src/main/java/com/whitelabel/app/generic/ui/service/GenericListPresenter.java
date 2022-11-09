@@ -52,14 +52,13 @@ public class GenericListPresenter extends ListPresenter {
 	 */
 	@Override
 	public Container initializeContainer() {
-		Class indexElasticSearchClass = ((GenericListPresenterDefinition) getPresenterDefinition())
-				.getItemClass();
+		Class indexElasticSearchClass = ((GenericListPresenterDefinition) getPresenterDefinition()).getItemClass();
 		if (indexElasticSearchClass == null && serviceContainer != null
 				&& serviceContainer.getFactoryContainer() != null) {
 			indexElasticSearchClass = serviceContainer.getFactoryContainer().getClassType();
 		}
 		if (indexElasticSearchClass != null) {
-			Params params = GenericParamsBuilder.createSearch()
+			Params params = GenericParamsBuilder.createSearch(serviceContainer)
 					.addField(GenericConstants.FILTER_INDEX, indexElasticSearchClass.getCanonicalName()).get();
 			try {
 				serviceContainer.getCustomContainer().createCustomContainer(params);

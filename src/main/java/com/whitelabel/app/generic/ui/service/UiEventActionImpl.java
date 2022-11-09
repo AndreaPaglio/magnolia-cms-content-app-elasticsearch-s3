@@ -45,7 +45,6 @@ import com.whitelabel.app.generic.ui.FieldProperty;
 import com.whitelabel.app.generic.ui.GroupCustomUi;
 import com.whitelabel.app.generic.ui.table.CustomTable;
 import com.whitelabel.app.generic.ui.table.GenericColumnDefinitions;
-import com.whitelabel.app.generic.utils.FieldUtils;
 import com.whitelabel.app.generic.utils.GenericConstants;
 import com.whitelabel.app.generic.utils.MyConverterFactory;
 
@@ -125,11 +124,13 @@ public class UiEventActionImpl implements UiEventAction {
 		if (customContainer != null) {
 			Params params = fillParamsItem();
 
-			Class<? extends GenericItem> classType = FieldUtils.getClassItem(params, params.getFields().get("index"),
-					GenericItem.class);
+			Class<? extends GenericItem> classType = serviceContainer.getConverterClass().getClassItem(params,
+					params.getFields().get("index"), GenericItem.class);
 			AddItem addItem = null;
 			try {
-				addItem = new AddItem(FieldUtils.createInstanceFromClassAndValues(classType, params, null), classType);
+				addItem = new AddItem(
+						serviceContainer.getConverterClass().createInstanceFromClassAndValues(classType, params, null),
+						classType);
 			} catch (InstantiationException | IllegalAccessException e) {
 				log.error("Error New Item", e);
 			}
@@ -146,7 +147,7 @@ public class UiEventActionImpl implements UiEventAction {
 	@Override
 	public Params fillParamsItem() {
 		Params params = new Params();
-		ParamsAdapter paramsSearchAdapter = new ParamsAdapter(params);
+		ParamsAdapter paramsSearchAdapter = new ParamsAdapter(params, serviceContainer);
 
 		params.setSize(GenericConstants.SEARCH_PARAMS_DEFAULT_NUMBER_PAGE);
 		params.setOffset(GenericConstants.SEARCH_PARAMS_DEFAULT_OFFSET_PAGE);
@@ -169,7 +170,7 @@ public class UiEventActionImpl implements UiEventAction {
 		}
 		String nameIndex = (String) params.getFields().get(GenericConstants.FILTER_INDEX);
 		if (StringUtils.isNotEmpty(nameIndex)) {
-			params.setClassType(FieldUtils.getClassFromSearchParams(params, GenericItem.class));
+			params.setClassType(serviceContainer.getConverterClass().getClassFromParams(params, GenericItem.class));
 		} else {
 			Class indexClass = (Class) MgnlContext.getWebContext().getRequest().getSession()
 					.getAttribute(GenericConstants.SELECT_INDEX_KEY);
@@ -181,8 +182,8 @@ public class UiEventActionImpl implements UiEventAction {
 		params.getFields().put(GenericConstants.FILTER_INDEX, params.getFields().get(GenericConstants.FILTER_INDEX));
 		if (params.getFields().get(GenericConstants.SELECT_SOURCE) != null
 				&& params.getFields().get(GenericConstants.SELECT_SOURCE) instanceof String) {
-			params.setSource(
-					FieldUtils.getClassFromName((String) params.getFields().get(GenericConstants.SELECT_SOURCE)));
+			params.setSource(serviceContainer.getConverterClass()
+					.getClassFromName((String) params.getFields().get(GenericConstants.SELECT_SOURCE)));
 		}
 		return params;
 	}
@@ -209,7 +210,7 @@ public class UiEventActionImpl implements UiEventAction {
 		return () -> {
 			Params params = fillParamsItem();
 
-			Class<? extends GenericDelegate> classType = FieldUtils.getClassItem(params,
+			Class<? extends GenericDelegate> classType = serviceContainer.getConverterClass().getClassItem(params,
 					params.getFields().get("source"), GenericDelegate.class);
 			GenericDelegate delegate = serviceContainer.getUiService().getComponentProvider().getComponent(classType);
 			Class classParameterConnection = delegate.getClass().getAnnotation(DelegateImplementation.class)
@@ -221,7 +222,7 @@ public class UiEventActionImpl implements UiEventAction {
 				if (delegate.getConnection() != null) {
 					p = delegate.getConnection().getParams();
 				}
-				ParameterConnection parameterConnection = FieldUtils
+				ParameterConnection parameterConnection = serviceContainer.getConverterClass()
 						.createInstanceFromClassAndValues(classParameterConnection, params, p);
 
 				delegate.getConnection().setParams(parameterConnection);
@@ -261,7 +262,7 @@ public class UiEventActionImpl implements UiEventAction {
 				delegate.setServiceContainer(serviceContainer);
 
 				Class paramClass = delegate.getClass().getAnnotation(DelegateImplementation.class).parameterClass();
-				allFields = FieldUtils.getAllFields(paramClass);
+				allFields = serviceContainer.getConverterClass().getAllFields(paramClass);
 				Runnable clickOnSource = clickOnSourceConnect();
 
 				CustomUi<CustomFieldFilter> customUI = FactoryCustomUi.create(layout, CustomFieldFilter.class);
@@ -297,32 +298,34 @@ public class UiEventActionImpl implements UiEventAction {
 	@Override
 	public Consumer<CustomFieldFilter> selectGenericItem() {
 		return (event) -> {
+			serviceContainer.getCacheHelper().removeAllCachedItems();
+			serviceContainer.getCacheHelper().removeAllCachedResults();
+			serviceContainer.getCacheHelper().removeAllFactoryConvert();
 			Params params = fillParamsItem();
-			params = GenericParamsBuilder.createSearch().params(params).addField(event.getField(), event.getValue())
-					.get();
+			Params paramsClassType = GenericParamsBuilder.createSearch(serviceContainer).params(params)
+					.addField(event.getField(), event.getValue()).get();
 			CustomUi<CustomFieldFilter> create = FactoryCustomUi.create(layout, CustomFieldFilter.class);
 			create.setVisibilityTabSheet(GenericConstants.TAB_NAME_SEARCH, Boolean.FALSE);
-			if (params.getClassType() != null) {
-
+			params.setClassType(paramsClassType.getClassType());
+			if (paramsClassType.getClassType() != null) {
 				try {
-					params = fillParamsItem();
 					customContainer.createConnection(params);
 					serviceContainer.getFactoryContainer().create(params.getClassType(), customContainer);
 				} catch (Exception e) {
 					log.error("Error SelectIndex:", e);
 					return;
 				}
-				List<Field> allFields = FieldUtils.getAllFields(params.getClassType());
+				List<Field> allFields = serviceContainer.getConverterClass().getAllFields(params.getClassType());
 				VaadinSession.getCurrent().setConverterFactory(new MyConverterFactory());
-
 				serviceContainer.getCustomContainer().refresh();
 				CustomTable.removeColumns(logListView);
 
-				List<Field> fieldsBoosted = FieldUtils.getAllFields(params.getClassType()).stream().filter(field -> {
-					return FieldUtils.isBoostField(field);
-				}).collect(Collectors.toList());
+				List<Field> fieldsBoosted = serviceContainer.getConverterClass().getAllFields(params.getClassType())
+						.stream().filter(field -> {
+							return serviceContainer.getConverterClass().isBoostField(field);
+						}).collect(Collectors.toList());
 				AdapterField createBoostField = field -> {
-					String nameField = FieldUtils.getFieldNameBoostField(field.getField());
+					String nameField = serviceContainer.getConverterClass().getFieldNameBoostField(field.getField());
 					return nameField;
 				};
 				AdapterField createField = field -> {
@@ -367,7 +370,7 @@ public class UiEventActionImpl implements UiEventAction {
 						params.getClassType());
 
 				MgnlContext.getWebContext().getRequest().getSession().removeAttribute(GenericConstants.SEARCH_PARAMS);
-				clickOnSearch().run();
+				clickOnSearch();
 			}
 		};
 	}
