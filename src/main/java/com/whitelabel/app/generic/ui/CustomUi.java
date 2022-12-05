@@ -25,6 +25,7 @@ import com.vaadin.ui.Component;
 import com.vaadin.ui.TabSheet;
 import com.vaadin.ui.TabSheet.Tab;
 import com.vaadin.ui.TextField;
+import com.vaadin.ui.Upload;
 import com.vaadin.ui.VerticalLayout;
 import com.whitelabel.app.custom.interfaces.Listener;
 
@@ -269,7 +270,11 @@ public class CustomUi<T> {
 					if (option != null && groupId != null && groupId.equals(option.getGroup())) {
 						verticalLayout.removeComponent(verticalLayout.getComponent(cont));
 					}
-				} else {
+				} else if (verticalLayout.getComponent(cont) instanceof Upload) {
+					verticalLayout.removeComponent(verticalLayout.getComponent(cont));
+				}
+
+				else {
 					cont++;
 				}
 			}

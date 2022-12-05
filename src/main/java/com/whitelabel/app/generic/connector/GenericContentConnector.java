@@ -6,7 +6,6 @@ package com.whitelabel.app.generic.connector;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,7 +28,6 @@ import com.whitelabel.app.custom.interfaces.CustomContentConnector;
 import com.whitelabel.app.event.RowIdChangeListener;
 import com.whitelabel.app.event.RowIdChangeNotifier;
 import com.whitelabel.app.generic.annotation.GenericEntity;
-import com.whitelabel.app.generic.custom.entity.Log;
 import com.whitelabel.app.generic.entity.GenericItem;
 import com.whitelabel.app.generic.entity.ItemDelegate;
 import com.whitelabel.app.generic.others.GenericException;
@@ -885,7 +883,7 @@ public class GenericContentConnector<T extends GenericItem> extends AbstractCont
 	 */
 	@Override
 	public Object getItemIdByUrlFragment(String urlFragment) {
-		return new Log("", "", "", "", "", "", new Date());
+		return null;
 	}
 
 	/**

@@ -3,10 +3,7 @@
  */
 package com.whitelabel.app.generic.custom.entity;
 
-import java.util.Date;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.whitelabel.app.generic.annotation.Format;
 import com.whitelabel.app.generic.annotation.GenericEntity;
 import com.whitelabel.app.generic.entity.GenericItem;
 
@@ -34,16 +31,4 @@ public class Log extends GenericItem {
 	/** The logger name. */
 	private String loggerName;
 
-	/** The hostname. */
-	private String hostname;
-
-	/** The message. */
-	private String message;
-
-	/** The thread. */
-	private String thread;
-
-	/** The time millis. */
-	@Format(formatter = "EE MMM dd HH:mm:ss zzzz yyyy")
-	private Date timeMillis;
 }

@@ -109,6 +109,7 @@ public class GenericConstants {
 // CACHE
 	public static final String CACHED_RESULT_KEY = "results";
 	public static final String CACHED_ITEMS_KEY = "cachedItems";
+	public static final String CACHED_SUBTYPE_OF_CLASS_KEY = "cachedSubTypeOfClass";
 	public static final String CACHED_FACTORY_CONVERT_STRING_KEY = "cachedFactoryStringConvert";
 	public static final String CACHED_CONVERTER_CLASS_KEY = "cachedConverterClass";
 

@@ -298,15 +298,19 @@ public class UiEventActionImpl implements UiEventAction {
 	@Override
 	public Consumer<CustomFieldFilter> selectGenericItem() {
 		return (event) -> {
+//			Remove cache
 			serviceContainer.getCacheHelper().removeAllCachedItems();
 			serviceContainer.getCacheHelper().removeAllCachedResults();
 			serviceContainer.getCacheHelper().removeAllFactoryConvert();
+
 			Params params = fillParamsItem();
+
 			Params paramsClassType = GenericParamsBuilder.createSearch(serviceContainer).params(params)
 					.addField(event.getField(), event.getValue()).get();
 			CustomUi<CustomFieldFilter> create = FactoryCustomUi.create(layout, CustomFieldFilter.class);
 			create.setVisibilityTabSheet(GenericConstants.TAB_NAME_SEARCH, Boolean.FALSE);
 			params.setClassType(paramsClassType.getClassType());
+
 			if (paramsClassType.getClassType() != null) {
 				try {
 					customContainer.createConnection(params);
@@ -331,18 +335,18 @@ public class UiEventActionImpl implements UiEventAction {
 				AdapterField createField = field -> {
 					return field.getField().getName();
 				};
-//		Clean all fieldText to recent selected index
+				// Clean all fieldText to recent selected index
 				create.setVisibilityComponent(GenericConstants.TAB_NAME_MANAGE, GenericConstants.BUTTON_ADD_LABEL,
 						Boolean.TRUE);
 
 				create.clearAllFieldTextInTab(GenericConstants.TAB_NAME_MANAGE, GenericConstants.GROUP_FILTER_ID);
 				create.clearAllFieldTextInTab(GenericConstants.TAB_NAME_SEARCH, GenericConstants.GROUP_BOOST_ID);
-//		Create all fieldText to new selected index
+				// Create all fieldText to new selected index
 				create.createFieldsFromTab(GenericConstants.TAB_NAME_SEARCH, fieldsBoosted,
 						GenericConstants.GROUP_BOOST_ID, createBoostField, null);
 				create.createFieldsFromTab(GenericConstants.TAB_NAME_MANAGE, allFields,
 						GenericConstants.GROUP_FILTER_ID, createField, null);
-//		Modify Column Table
+				// Modify Column Table
 				for (Field field : allFields) {
 					Class<? extends ColumnFormatter> classFormatter = PlainCellColumnFormatter.class;
 					int width = 55;
@@ -366,6 +370,7 @@ public class UiEventActionImpl implements UiEventAction {
 				fields.add(property);
 				FactoryCustomUi.create(layout, serviceContainer.getFactoryContainer().getClassType())
 						.updateFieldsFromTab(GenericConstants.TAB_NAME_MANAGE, fields);
+
 				MgnlContext.getWebContext().getRequest().getSession().setAttribute(GenericConstants.SELECT_INDEX_KEY,
 						params.getClassType());
 

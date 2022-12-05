@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Data
 @Slf4j
-public class CacheHelper {
+public class CacheHelper<D> {
 
 	private CacheManager cacheManager;
 
@@ -38,6 +38,8 @@ public class CacheHelper {
 		cacheManager.createCache(GenericConstants.CACHED_FACTORY_CONVERT_STRING_KEY, CacheConfigurationBuilder
 				.newCacheConfigurationBuilder(String.class, Params.class, ResourcePoolsBuilder.heap(10)));
 		cacheManager.createCache(GenericConstants.CACHED_CONVERTER_CLASS_KEY, CacheConfigurationBuilder
+				.newCacheConfigurationBuilder(Class.class, List.class, ResourcePoolsBuilder.heap(10)));
+		cacheManager.createCache(GenericConstants.CACHED_SUBTYPE_OF_CLASS_KEY, CacheConfigurationBuilder
 				.newCacheConfigurationBuilder(Class.class, List.class, ResourcePoolsBuilder.heap(10)));
 	}
 
@@ -173,5 +175,29 @@ public class CacheHelper {
 		Cache<RowId, RowItem> cachedItems = cacheManager.getCache(GenericConstants.CACHED_ITEMS_KEY, RowId.class,
 				RowItem.class);
 		cachedItems.clear();
+	}
+
+	public <D> void putAllSubTypeOfClass(Class<D> subTypeOf, List<Class<? extends D>> list) {
+		Cache<Class, List> cachedItems = cacheManager.getCache(GenericConstants.CACHED_SUBTYPE_OF_CLASS_KEY,
+				Class.class, List.class);
+		cachedItems.put(subTypeOf, list);
+	}
+
+	public <D> boolean containsAllSubTypeOfClassKey(Class<D> subTypeOf) {
+		Cache<Class, List> cacheResults = cacheManager.getCache(GenericConstants.CACHED_SUBTYPE_OF_CLASS_KEY,
+				Class.class, List.class);
+		if (cacheResults != null) {
+			return cacheResults.containsKey(subTypeOf);
+		}
+		return false;
+	}
+
+	public List<Class<? extends D>> getAllSubTypeOfClass(Class<D> subTypeOf) {
+		Cache<Class, List> cachedItems = cacheManager.getCache(GenericConstants.CACHED_SUBTYPE_OF_CLASS_KEY,
+				Class.class, List.class);
+		if (cachedItems.containsKey(subTypeOf)) {
+			return cachedItems.get(subTypeOf);
+		}
+		return null;
 	}
 }

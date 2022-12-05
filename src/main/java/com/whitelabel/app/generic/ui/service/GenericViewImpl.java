@@ -143,7 +143,7 @@ public class GenericViewImpl implements CustomView {
 				log.error("Error Ui Creation", e);
 			}
 			tabManage.addButtom(GenericConstants.BUTTON_ADD_LABEL, GenericConstants.BUTTON_ADD_LABEL, Boolean.FALSE,
-					clickOnAdd).addLabel(GenericConstants.LABEL_ADD_INDEX).build();
+					clickOnAdd).build();
 			customUI.createTab(Boolean.TRUE)
 					.nameTab(GenericConstants.TAB_NAME_SEARCH, GenericConstants.TAB_GROUP_ITEM_SEARCH)
 					.addTextField(GenericConstants.SEARCH_TEXT_ID, "Search", "Search by word ...")

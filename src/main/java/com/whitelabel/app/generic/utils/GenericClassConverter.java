@@ -108,16 +108,24 @@ public class GenericClassConverter {
 	 * @return all Generic Class Items
 	 */
 	public <D> List<Class<? extends D>> getAllClassGenericItem(Class<D> subTypeOf) {
-		Reflections reflections = new Reflections("com");
-		Set<Class<? extends D>> classes = reflections.getSubTypesOf(subTypeOf);
-		return classes.stream().collect(Collectors.toList());
+		if (repositoryService.getCacheHelper().containsAllSubTypeOfClassKey(subTypeOf)) {
+			return repositoryService.getCacheHelper().getAllSubTypeOfClass(subTypeOf);
+		} else {
+			Reflections reflections = new Reflections("com");
+			Set<Class<? extends D>> classes = reflections.getSubTypesOf(subTypeOf);
+			List<Class<? extends D>> list = classes.stream().collect(Collectors.toList());
+			repositoryService.getCacheHelper().putAllSubTypeOfClass(subTypeOf, list);
+			return list;
+		}
+
 	}
 
 	public Class getClassFromName(String nameClass) {
 		try {
 			return Class.forName(nameClass);
 		} catch (ClassNotFoundException e) {
-			repositoryService.getLogService().logger(LogStatus.ERROR, "Error ClassFromName", GenericClassConverter.class, e);
+			repositoryService.getLogService().logger(LogStatus.ERROR, "Error ClassFromName",
+					GenericClassConverter.class, e);
 		}
 		return null;
 	}
@@ -174,7 +182,8 @@ public class GenericClassConverter {
 							nameField = typeClass.getSuperclass().getDeclaredField(name);
 						} catch (Exception superClassException) {
 							repositoryService.getLogService().logger(LogStatus.ERROR,
-									"createInstanceFromClassAndValues", GenericClassConverter.class, superClassException);
+									"createInstanceFromClassAndValues", GenericClassConverter.class,
+									superClassException);
 						}
 					}
 					if (nameField != null) {
@@ -230,6 +239,9 @@ public class GenericClassConverter {
 	public <D> Class<? extends D> getClassFromParams(Params searchParams, Class<D> typeClass) {
 		if (searchParams != null && searchParams.getFields() != null) {
 			String indexName = (String) searchParams.getFields().get(GenericConstants.INDEX_ID);
+			repositoryService.getLogService().logger(LogStatus.ERROR,
+					"[getClassFromParams]" + indexName + typeClass.getName(), GenericClassConverter.class, null);
+
 			return getClassFromClassName(indexName, typeClass);
 		}
 		return null;
