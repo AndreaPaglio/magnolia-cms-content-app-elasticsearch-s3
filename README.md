@@ -1,4 +1,5 @@
 
+[![Build Status](https://app.travis-ci.com/andreapagliacci/magnolia-cms-content-app-elasticsearch-s3.svg?branch=main)](https://app.travis-ci.com/andreapagliacci/magnolia-cms-content-app-elasticsearch-s3)
 # What's problem resolve?
 The app permits you to connect (now, in the future I expand the source connectable) to :
 -   an **elastic search instance** shows/edit/add documents in the table from the index you prefer. You can search items with the Elastic Search engine directly in the specific tab. You have not only in Magnolia out-the-box without Kibana a tool for searching, adding, editing, delete an item on a specific index, but you have a framework for developers to map index, and fields to one DTO and facilitate import/export, and conversion from elastic search data to another connectable source).
